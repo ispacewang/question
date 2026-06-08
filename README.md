@@ -18,6 +18,11 @@
 - 🌙 **深色模式** — 低饱和度柔和配色，圆形扩散动画切换
 - 🪟 **Frameless 窗口** — Mica 磨玻璃标题栏，自定义窗口控制（最小化/最大化/关闭）
 - 🧭 **功能引导** — driver.js 新手引导，分步介绍核心功能
+- ∑ **数学公式** — KaTeX 渲染 LaTeX 数学公式（行内 & 块级）
+- 📐 **数学图形** — JSXGraph 渲染函数图像、几何图形
+- 📄 **PDF 试卷** — 一键导出 A4 PDF 试卷 & 答案
+- 💬 **AI 对话** — 侧边 AI 对话面板，辅助答疑
+- 📋 **考试历史** — 历史考试成绩回顾与统计
 
 ## 技术栈
 
@@ -29,6 +34,7 @@
 | 数据库 | SQLite（better-sqlite3） |
 | AI | DeepSeek API（题目生成 + 判题） |
 | 图表 | Chart.js + vue-chartjs |
+| 数学 | KaTeX + JSXGraph |
 | 打包 | electron-builder（NSIS 安装包） |
 
 ## 快速开始
@@ -70,6 +76,7 @@ yarn build:win
 ├── backend/
 │   ├── app.js           # Express 服务器（题库 CRUD、组卷）
 │   ├── db.js            # SQLite 数据库层
+│   ├── paper-pdf.js     # PDF 试卷生成（Electron printToPDF）
 │   └── ai/              # AI 功能模块
 │       ├── index.js     # AI 路由挂载
 │       ├── deepseek.js  # DeepSeek API 客户端
@@ -79,15 +86,20 @@ yarn build:win
 │   ├── src/
 │   │   ├── App.vue     # 根组件（三栏布局）
 │   │   ├── components/
-│   │   │   ├── Quiz.vue          # 答题区
-│   │   │   ├── Exam.vue          # 考试弹窗
-│   │   │   ├── StatsPanel.vue    # 统计面板
-│   │   │   ├── WrongAnswerPanel.vue  # 错题本
-│   │   │   ├── BankSelector.vue  # 题库选择器
-│   │   │   ├── AiGeneratePanel.vue   # AI 生成面板
-│   │   │   ├── TitleBar.vue      # 自定义标题栏
-│   │   │   ├── AppTour.vue       # 功能引导
-│   │   │   └── ui/               # Shadcn-Vue UI 组件
+│   │   │   ├── Quiz.vue             # 答题区
+│   │   │   ├── Exam.vue             # 考试弹窗
+│   │   │   ├── StatsPanel.vue       # 统计面板
+│   │   │   ├── WrongAnswerPanel.vue # 错题本
+│   │   │   ├── BankSelector.vue     # 题库选择器
+│   │   │   ├── AiGeneratePanel.vue  # AI 生成面板
+│   │   │   ├── AiChatPanel.vue      # AI 对话面板
+│   │   │   ├── ExamHistoryPanel.vue # 考试历史
+│   │   │   ├── KatexMath.vue        # LaTeX 公式渲染
+│   │   │   ├── DiagramBoard.vue     # JSXGraph 图形渲染
+│   │   │   ├── UploadQuestions.vue  # 题库上传
+│   │   │   ├── TitleBar.vue         # 自定义标题栏
+│   │   │   ├── AppTour.vue          # 功能引导
+│   │   │   └── ui/                  # Shadcn-Vue UI 组件
 │   │   ├── ai/           # AI 前端模块
 │   │   ├── composables/  # 组合式函数
 │   │   ├── stores/       # 状态管理（Pinia）
