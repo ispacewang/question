@@ -1,0 +1,6 @@
+release
+node_modules
+dist
+models
+.vscode
+.DS_Store

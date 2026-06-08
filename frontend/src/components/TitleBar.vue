@@ -1,0 +1,67 @@
+<script setup>
+/** @file TitleBar.vue — 自定义标题栏，Mica磨玻璃效果，深色模式切换+窗口控制 */
+import { ref, onMounted } from 'vue'
+import { Minus, Square, X, Moon, Sun } from 'lucide-vue-next'
+import { useTheme } from '@/stores/theme'
+
+const { isDark, toggle } = useTheme()
+const isMaximized = ref(false)
+
+/** 最小化窗口（Electron 环境） */
+const min = () => window.electronAPI?.minimizeWindow()
+/** 最大化/还原窗口（Electron 环境） */
+const max = () => window.electronAPI?.maximizeWindow()
+/** 关闭窗口（Electron 环境） */
+const close = () => window.electronAPI?.closeWindow()
+
+onMounted(() => {
+  window.electronAPI?.onWindowStateChanged((max) => { isMaximized.value = max })
+})
+</script>
+
+<template>
+  <header
+    class="flex items-center justify-between h-[44px] flex-shrink-0 select-none transition-colors"
+    style="-webkit-app-region: drag; background: rgba(74, 125, 191, 0.12); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-bottom: 1px solid var(--color-border);"
+  >
+    <!-- 左侧 -->
+    <div class="flex items-center gap-2.5 pl-3">
+      <img src="/favicon1.ico" alt="icon" class="w-5 h-5" />
+      <span class="text-[14px] font-semibold text-foreground tracking-tight">答题小助手</span>
+    </div>
+
+    <!-- 右侧 -->
+    <div class="flex items-center" style="-webkit-app-region: no-drag;">
+      <!-- 深色模式切换 -->
+      <button
+        data-tour="theme-btn"
+        class="w-[36px] h-[44px] flex items-center justify-center text-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+        @click="toggle($event)"
+        :title="isDark ? '浅色模式' : '深色模式'"
+      >
+        <Sun v-if="isDark" class="w-4 h-4" />
+        <Moon v-else class="w-4 h-4" />
+      </button>
+
+      <!-- 窗口控制 -->
+      <button
+        class="w-[46px] h-[44px] flex items-center justify-center text-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+        @click="min"
+      >
+        <Minus class="w-3.5 h-3.5" />
+      </button>
+      <button
+        class="w-[46px] h-[44px] flex items-center justify-center text-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+        @click="max"
+      >
+        <Square class="w-3 h-3" />
+      </button>
+      <button
+        class="w-[46px] h-[44px] flex items-center justify-center text-foreground/50 hover:text-white hover:bg-destructive/70 transition-colors"
+        @click="close"
+      >
+        <X class="w-3.5 h-3.5" />
+      </button>
+    </div>
+  </header>
+</template>
