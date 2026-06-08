@@ -39,6 +39,8 @@ const SYSTEM_PROMPT = `你是一个严谨、专业的阅卷判题助手。你需
 
 **重要原则：宁可放过，不可误判。模棱两可时判对，并在 explanation 中说明存疑点。**
 
+**数学公式格式**：explanation 中涉及数学公式时，使用 $...$ 包裹行内公式（如 $x^2 + 2x + 1$），$$...$$ 包裹块级公式。
+
 只输出 JSON，不要任何 Markdown 代码块或额外文字。`;
 
 /**
@@ -47,13 +49,13 @@ const SYSTEM_PROMPT = `你是一个严谨、专业的阅卷判题助手。你需
  * @param {object} q — { question, type, options, answer, userAnswer, bankName }
  * @returns {Promise<{correct: boolean, explanation: string}>}
  */
-async function judgeQuestion(apiKey, q) {
+async function judgeQuestion(apiKey, q, model = 'deepseek-v4-pro') {
   const prompt = buildJudgePrompt(q);
 
   const response = await chat(apiKey, [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: prompt },
-  ], { temperature: 0.1, max_tokens: 1024 });
+  ], { temperature: 0.1, max_tokens: 1024, model });
 
   return parseJudgment(response, q);
 }

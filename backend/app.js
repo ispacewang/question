@@ -38,9 +38,10 @@ function parseQuestions(filePath) {
         opts = row["选项"]
           .split(/\||｜/)
           .map((s) => s.trim())
+          .map((s) => s.replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, ''))
           .filter(Boolean);
       } else if (determinedType === "判断题") {
-        opts = ["A. 正确", "B. 错误"];
+        opts = ["正确", "错误"];
       }
 
       let answer = (row["答案"] || "").toString().trim();
@@ -178,7 +179,8 @@ function createServer() {
   app.get("/generate-paper", (req, res) => {
     const { bankName } = req.query;
     // 支持多种题型数量: ?counts={"单选题":40,"多选题":30,"判断题":30,"简答题":10,"填空题":10}
-    let counts = { '单选题': 40, '多选题': 30, '判断题': 30, '简答题': 10, '填空题': 10 };
+    // 默认仅选择题+判断题（上传题库）。AI题库会传完整counts
+    let counts = { '单选题': 40, '多选题': 30, '判断题': 30 };
     if (req.query.counts) {
       try { counts = { ...counts, ...JSON.parse(req.query.counts) }; } catch {}
     }
@@ -367,6 +369,24 @@ function createServer() {
       db.prepare("DELETE FROM questions WHERE bank_id = ?").run(bankId);
       db.prepare("DELETE FROM banks WHERE id = ?").run(bankId);
       res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── 下载试卷 PDF ───
+  const { generatePaperPdf, generateAnswerPdf } = require('./paper-pdf');
+  app.post('/api/download-paper', async (req, res) => {
+    try {
+      const { bankName, typeCounts, answer } = req.body;
+      if (!bankName) return res.status(400).json({ error: '缺少题库名' });
+      const genFn = answer ? generateAnswerPdf : generatePaperPdf;
+      const pdfPath = await genFn(bankName, typeCounts || null);
+      const label = answer ? '答案' : '试卷';
+      res.download(pdfPath, `${bankName}_${label}.pdf`, (err) => {
+        if (err) console.error('[paper-pdf] download error:', err.message);
+        try { fs.unlinkSync(pdfPath); } catch {}
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

@@ -1,71 +1,83 @@
-/** @file index.js — AI 路由，API Key 配置持久化、题库生成(带状态轮询)、AI 判题 */
-
-// backend/ai/index.js — AI 路由
+/** @file index.js — AI 路由，API Key + 模型配置、题库生成、AI 判题、模型列表 */
 const { generateQuestions } = require('./generator');
 const { judgeQuestion } = require('./judge');
+const { fetchModels } = require('./deepseek');
 const db = require('../db');
 const fs = require('fs');
 const path = require('path');
 
-// ─── API Key 持久化文件路径 ───
+// ─── 持久化 ───
 function getConfigPath() {
   const { app } = require('electron');
   if (app) return path.join(app.getPath('userData'), 'ai-config.json');
   return path.join(__dirname, '..', '..', 'ai-config.json');
 }
 
-/**
- * 从持久化文件加载 AI 配置（API Key + provider）
- * @returns {{apiKey?: string, provider?: string}} 配置对象
- */
 function loadConfig() {
   try { return JSON.parse(fs.readFileSync(getConfigPath(), 'utf8')); } catch { return {}; }
 }
 
-/**
- * 将 AI 配置持久化到文件
- * @param {{apiKey?: string, provider?: string}} config — 配置对象
- */
 function saveConfig(config) {
   fs.writeFileSync(getConfigPath(), JSON.stringify(config));
 }
 
-/**
- * 创建 AI 相关路由：/config、/generate、/status、/judge
- * @returns {express.Router} Express 路由器实例
- */
 function createAiRoutes() {
   const router = require('express').Router();
-
   let genStatus = null;
   let cachedConfig = loadConfig();
 
-  // ─── 配置 API Key ───
+  // ─── POST /config：保存 API Key + 模型 ───
   router.post('/config', (req, res) => {
-    const { apiKey, provider } = req.body;
+    const { apiKey, model, provider } = req.body;
     if (!apiKey) return res.status(400).json({ error: '缺少 apiKey' });
-    cachedConfig = { apiKey, provider: provider || 'deepseek' };
+    cachedConfig = {
+      apiKey,
+      model: model || cachedConfig.model || 'deepseek-v4-pro',
+      provider: provider || 'deepseek',
+    };
     saveConfig(cachedConfig);
-    res.json({ ok: true });
+    res.json({ ok: true, model: cachedConfig.model });
   });
 
-  // ─── GET /config：获取当前 API Key 配置状态（已脱敏）───
+  // ─── PUT /config/model：单独更新模型 ───
+  router.put('/config/model', (req, res) => {
+    const { model } = req.body;
+    if (!model) return res.status(400).json({ error: '缺少 model' });
+    if (!cachedConfig.apiKey) return res.status(400).json({ error: '请先配置 API Key' });
+    cachedConfig.model = model;
+    saveConfig(cachedConfig);
+    res.json({ ok: true, model });
+  });
+
+  // ─── GET /config ───
   router.get('/config', (req, res) => {
     const key = cachedConfig.apiKey || '';
     const masked = key ? key.slice(0, 7) + '...' + key.slice(-4) : '';
     res.json({
       configured: !!key,
       apiKey: masked,
+      model: cachedConfig.model || 'deepseek-v4-pro',
       provider: cachedConfig.provider || 'deepseek',
     });
   });
 
-  // ─── 生成题库 ───
+  // ─── GET /models：获取可用模型列表 ───
+  router.get('/models', async (req, res) => {
+    if (!cachedConfig.apiKey) return res.status(400).json({ error: '请先配置 API Key' });
+    try {
+      const models = await fetchModels(cachedConfig.apiKey);
+      res.json({ models, current: cachedConfig.model || 'deepseek-v4-pro' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── POST /generate ───
   router.post('/generate', async (req, res) => {
     const apiKey = cachedConfig.apiKey;
     if (!apiKey) return res.status(400).json({ error: '请先配置 API Key' });
 
-    const { topic = '通用知识', total = 500, bankName } = req.body;
+    const { topic = '通用知识', total = 500, bankName, model } = req.body;
     const name = bankName || `AI题库_${topic}_${Date.now().toString(36)}`;
 
     const existing = db.prepare('SELECT id FROM banks WHERE name = ?').get(name);
@@ -73,11 +85,14 @@ function createAiRoutes() {
 
     genStatus = { running: true, progress: 0, total, bankName: name };
 
+    // 使用请求指定的 model 或全局默认
+    const useModel = model || cachedConfig.model || 'deepseek-v4-pro';
+
     generateQuestions(apiKey, topic, total, (info) => {
       genStatus.progress = info.questions;
       genStatus.batch = info.batch;
       genStatus.totalBatches = info.totalBatches;
-    }).then(async (questions) => {
+    }, useModel).then(async (questions) => {
       if (questions.length === 0) {
         genStatus = { running: false, error: '未能生成题目，请检查 API Key 或网络' };
         return;
@@ -88,9 +103,7 @@ function createAiRoutes() {
         const stmt = db.prepare(
           'INSERT INTO questions (bank_id, question, options, answer, explanation, type, meta) VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
-        for (const q of qs) {
-          stmt.run(bankId, q.question, q.options, q.answer, q.explanation, q.type, q.meta);
-        }
+        for (const q of qs) stmt.run(bankId, q.question, q.options, q.answer, q.explanation, q.type, q.meta);
         return qs.length;
       });
       const count = insertMany(name, questions);
@@ -102,18 +115,17 @@ function createAiRoutes() {
     res.json({ ok: true, bankName: name, message: '开始生成' });
   });
 
-  // ─── GET /status：查询生成任务进度 ───
+  // ─── GET /status ───
   router.get('/status', (req, res) => {
     res.json(genStatus || { running: false });
   });
 
-  // ─── POST /judge：AI 智能判题 ───
+  // ─── POST /judge ───
   router.post('/judge', async (req, res) => {
     const apiKey = cachedConfig.apiKey;
     if (!apiKey) return res.status(400).json({ error: '请先配置 API Key' });
-    const { questionId, question, type, options, answer, userAnswer } = req.body;
+    const { questionId, question, type, options, answer, userAnswer, model } = req.body;
 
-    // 支持通过 questionId 查库，避免前端泄露答案
     let qData = { question, type, options, answer };
     let bankName = '';
     if (questionId) {
@@ -133,6 +145,7 @@ function createAiRoutes() {
 
     if (!qData.question || userAnswer === undefined) return res.status(400).json({ error: '缺少必要参数' });
     try {
+      const useModel = model || cachedConfig.model || 'deepseek-v4-pro';
       const result = await judgeQuestion(apiKey, {
         question: qData.question,
         type: qData.type,
@@ -140,8 +153,7 @@ function createAiRoutes() {
         answer: qData.answer,
         userAnswer,
         bankName,
-      });
-      // 将数据库中的标准答案和解析也带回
+      }, useModel);
       result.answer = qData.answer;
       result.explanation = result.explanation || qData.explanation;
       res.json(result);

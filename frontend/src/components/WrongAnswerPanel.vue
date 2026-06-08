@@ -20,14 +20,20 @@
     <!-- 错题列表（可滚动） -->
     <div v-else class="flex-1 overflow-y-auto min-h-0 space-y-2">
       <div v-for="(item, i) in wrongAnswers" :key="item.questionData.questionId || i" class="py-3 border-b border-border/30 last:border-b-0">
-        <p class="text-sm font-medium mb-2 leading-relaxed">{{ item.questionData.question }}</p>
+        <KatexRender class="text-sm font-medium mb-2 leading-relaxed" :text="item.questionData.question" />
+        <DiagramBoard
+          v-if="item.questionData?.meta?.diagram || item.questionData?.meta?.diagramSvg"
+          :config="item.questionData?.meta?.diagram"
+          :svg="item.questionData?.meta?.diagramSvg"
+          :width="320" :height="200"
+        />
         <div v-if="item.questionData.options?.length" class="flex flex-col gap-0.5 mb-2">
           <div v-for="(opt, j) in item.questionData.options" :key="j"
             class="text-[11px] px-1 py-0.5 flex gap-0.5"
             :class="item.questionData.correctAnswer?.includes(String.fromCharCode(65 + j)) ? 'text-success font-medium' : 'text-muted-foreground'"
           >
             <span class="font-semibold flex-shrink-0">{{ String.fromCharCode(65 + j) }}.</span>
-            <span>{{ opt }}</span>
+            <KatexRender :text="stripOpt(opt)" />
           </div>
         </div>
         <div class="flex gap-3 text-xs">
@@ -52,10 +58,13 @@
 import { ref } from 'vue'
 import { saveAs } from 'file-saver'
 import Button from './ui/Button.vue'
+import KatexRender from './KatexRender.vue'
+import DiagramBoard from './DiagramBoard.vue'
 
 const props = defineProps({ wrongAnswers: { type: Array, required: true, default: () => [] } })
 defineEmits(['clear'])
 const showExportMenu = ref(false)
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
 
 /**
  * 格式化答案显示：数组用逗号拼接，非数组直接返回

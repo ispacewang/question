@@ -84,14 +84,12 @@
                       <Badge variant="outline" class="text-[9px]! px-1! py-0!">{{ r.questions[wi]?.type }}</Badge>
                       <span class="text-[10px] text-muted-foreground">第 {{ wi + 1 }} 题</span>
                     </div>
-                    <p class="leading-relaxed">{{ r.questions[wi]?.question }}</p>
+                    <KatexRender class="leading-relaxed" :text="r.questions[wi]?.question" />
                     <div class="flex gap-4 pt-1.5 border-t border-border/20">
                       <span class="text-destructive">✗ {{ fmtUserAns(r, wi) }}</span>
                       <span class="text-success">✓ {{ r.wrongDetails[wi]?.answer || '?' }}</span>
                     </div>
-                    <p v-if="r.wrongDetails[wi]?.explanation" class="text-[10px] text-muted-foreground pt-1.5 border-t border-border/20 leading-relaxed">
-                      {{ r.wrongDetails[wi].explanation }}
-                    </p>
+                    <KatexRender v-if="r.wrongDetails[wi]?.explanation" class="text-[10px] text-muted-foreground pt-1.5 border-t border-border/20 leading-relaxed" :text="r.wrongDetails[wi].explanation" />
                   </div>
                 </div>
                 <div v-else class="pt-4 text-xs text-success font-medium">🎉 满分通过！</div>
@@ -113,6 +111,7 @@
 /** @file ExamHistoryPanel.vue — 考试历史面板，右侧滑入，环形进度条+错题回顾+删除 */
 import { ref } from 'vue'
 import Badge from './ui/Badge.vue'
+import KatexRender from './KatexRender.vue'
 import { useExamHistory } from '../composables/useExamHistory'
 
 defineProps({ open: Boolean })

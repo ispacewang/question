@@ -19,6 +19,13 @@
         <input v-model.number="total" type="number" min="10" max="2000" step="10" class="w-full px-3 py-2 text-sm bg-background border border-border outline-none focus:border-primary transition-colors" />
       </div>
     </div>
+    <!-- 模型选择 -->
+    <div class="space-y-1.5">
+      <label class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">模型</label>
+      <select v-model="genModel" class="w-full px-3 py-2 text-sm bg-background border border-border outline-none focus:border-primary transition-colors appearance-none" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%222%22 stroke-linecap=%22round%22><path d=%22m6 9 6 6 6-6%22/></svg>'); background-repeat: no-repeat; background-position: right 10px center;">
+        <option v-for="m in genModels" :key="m.id" :value="m.id">{{ m.name || m.id }}</option>
+      </select>
+    </div>
 
     <!-- 进度 -->
     <div v-if="status" class="space-y-2">
@@ -45,9 +52,12 @@
 
 <script setup>
 /** @file AiGeneratePanel.vue — AI 生成题库面板（独立组件，已被 BankSelector 内联替代） */
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
 import axios from 'axios'
+import { useAiMode } from '../composables/useAiMode'
+
+const { selectedModel, availableModels } = useAiMode()
 
 const emit = defineEmits(['generated'])
 
@@ -55,6 +65,8 @@ const topic = ref('')
 const total = ref(500)
 const generating = ref(false)
 const status = ref(null)
+const genModel = ref(selectedModel.value || 'deepseek-v4-pro')
+const genModels = computed(() => availableModels.value.length ? availableModels.value : [{ id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro' }, { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' }])
 let pollTimer = null
 
 /**
@@ -69,6 +81,7 @@ async function startGenerate() {
     const res = await axios.post('http://localhost:13002/api/ai/generate', {
       topic: topic.value,
       total: total.value,
+      model: genModel.value,
     })
     if (res.data.ok) {
       toast.success('开始生成题库…')

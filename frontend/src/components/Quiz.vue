@@ -55,10 +55,30 @@
         </div>
 
         <!-- 题干 -->
-        <p class="text-base font-semibold leading-relaxed mb-6">{{ question.question }}</p>
+        <KatexRender class="text-base font-semibold leading-relaxed mb-8 block" :text="question.question" />
+
+        <!-- 配图 -->
+        <DiagramBoard
+          v-if="diagramConfig || diagramSvg"
+          :config="diagramConfig"
+          :svg="diagramSvg"
+        />
 
         <!-- 简答/填空 -->
-        <Textarea v-if="isShortAnswer || isFillBlank" v-model="userAnswer" :rows="4" placeholder="输入你的答案..." class="mb-5" />
+        <div v-if="isShortAnswer || isFillBlank" class="mb-5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-muted-foreground uppercase tracking-wider">{{ isShortAnswer ? '简答题' : '填空题' }}</span>
+            <button
+              @click="showPreview = !showPreview"
+              class="text-[11px] px-2 py-0.5 border transition-colors"
+              :class="showPreview ? 'border-primary/40 bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'"
+            >📐 预览公式</button>
+          </div>
+          <Textarea v-model="userAnswer" :rows="4" :placeholder="isShortAnswer ? '输入你的答案...（支持 $公式$ 语法）' : '输入正确答案...（支持 $公式$ 语法）'" />
+          <div v-if="showPreview && userAnswer" class="p-3 border border-border/50 bg-muted/30 min-h-[2em] text-sm leading-relaxed">
+            <KatexRender :text="userAnswer" />
+          </div>
+        </div>
 
         <!-- 选项 -->
         <div v-else class="flex flex-col gap-1.5 mb-6">
@@ -70,7 +90,7 @@
             <span class="flex items-center justify-center w-6 h-6 border text-xs font-semibold flex-shrink-0 transition-colors"
               :class="optionLetterClass(i)"
             >{{ String.fromCharCode(65 + i) }}</span>
-            <span class="text-sm leading-relaxed pt-0.5">{{ opt }}</span>
+            <span class="text-sm leading-relaxed pt-0.5"><KatexRender :text="stripOpt(opt)" /></span>
             <span v-if="showResult && isCorrectOption(i)" class="ml-auto text-success">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
             </span>
@@ -105,12 +125,12 @@
               : 'bg-destructive/[0.06] dark:bg-destructive/[0.10] border-l-destructive text-destructive dark:text-destructive'"
           >{{ lastResult?.correct ? '✓ 回答正确！' : '✗ 回答错误' }}</div>
           <div v-if="!lastResult?.correct" class="flex gap-2 text-sm px-4">
-            <span class="text-muted-foreground">正确答案：</span>
-            <span class="font-semibold text-success">{{ fmtAnswer }}</span>
+            <span class="text-muted-foreground flex-shrink-0">正确答案：</span>
+            <KatexRender class="font-semibold text-success" :text="fmtAnswer" />
           </div>
           <div v-if="lastResult?.explanation" class="p-4 bg-muted/50 text-sm leading-relaxed">
             <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">解析</span>
-            {{ lastResult.explanation }}
+            <KatexRender :text="lastResult.explanation" />
           </div>
         </div>
       </div>
@@ -126,11 +146,13 @@ import Badge from './ui/Badge.vue'
 import Button from './ui/Button.vue'
 import Textarea from './ui/Textarea.vue'
 import BankSelector from './BankSelector.vue'
+import KatexRender from './KatexRender.vue'
+import DiagramBoard from './DiagramBoard.vue'
 import * as api from '../api'
 import { getMistakeBook, removeQuestionFromMistakeBook, MISTAKE_BOOK_ID } from '../utils/mistakeBook'
 import { useAiMode } from '../composables/useAiMode'
 
-const { isAiMode } = useAiMode()
+const { isAiMode, selectedModel } = useAiMode()
 
 const bankSelectorRef = ref(null)
 const currentBank = ref('')
@@ -138,6 +160,7 @@ const question = ref(null)
 const userAnswer = ref('')
 const orderMode = ref(false)
 const quickMode = ref(false)
+const showPreview = ref(false)
 const loading = ref(false)
 const showResult = ref(false)
 const lastResult = ref(null)
@@ -179,6 +202,8 @@ const isShortAnswer = computed(() => question.value?.type === '简答题')   // 
 const isFillBlank = computed(() => question.value?.type === '填空题')      // 填空题需文本框输入
 const isMultiChoice = computed(() => question.value?.type === '多选题')    // 多选题支持多选字母
 const isMistakeBook = computed(() => currentBank.value === MISTAKE_BOOK_ID)
+
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
 const emptyDescription = computed(() => {
   if (!currentBank.value) return '选择一个题库开始答题'
   if (isMistakeBook.value) return '错题库为空'
@@ -187,6 +212,9 @@ const emptyDescription = computed(() => {
 
 const correctAnswer = computed(() => lastResult.value?.correctAnswer || question.value?.correctAnswer || question.value?.answer || '')
 const fmtAnswer = computed(() => Array.isArray(correctAnswer.value) ? correctAnswer.value.join(', ') : correctAnswer.value)
+
+const diagramConfig = computed(() => question.value?.meta?.diagram || null)
+const diagramSvg = computed(() => question.value?.meta?.diagramSvg || '')
 
 const isCorrectOption = (i) => showResult.value && correctAnswer.value.includes(String.fromCharCode(65 + i))
 const isWrongUserOption = (i) => {
@@ -330,6 +358,7 @@ const aiJudgeQuestion = async () => {
     const res = await axios.post('http://localhost:13002/api/ai/judge', {
       questionId: question.value.id,
       userAnswer: userAnswer.value,
+      model: selectedModel.value || undefined,
     })
     const { correct, explanation, answer: stdAnswer } = res.data
     lastResult.value = {

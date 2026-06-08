@@ -109,17 +109,30 @@
           </div>
 
           <!-- 题干 -->
-          <p class="text-base font-semibold leading-relaxed mb-5">
-            {{ questions[currentIdx].question }}
-          </p>
+          <KatexRender class="text-base font-semibold leading-relaxed mb-8 block" :text="questions[currentIdx].question" />
+
+          <!-- 配图 -->
+          <DiagramBoard
+            v-if="examDiagramConfig || examDiagramSvg"
+            :config="examDiagramConfig"
+            :svg="examDiagramSvg"
+          />
 
           <!-- 简答/填空 -->
-          <Textarea
-            v-if="questions[currentIdx].type === '简答题' || questions[currentIdx].type === '填空题'"
-            v-model="answers[currentIdx]"
-            :rows="4"
-            placeholder="输入答案..."
-          />
+          <div v-if="questions[currentIdx].type === '简答题' || questions[currentIdx].type === '填空题'" class="space-y-2 mb-5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-muted-foreground uppercase tracking-wider">{{ questions[currentIdx].type }}</span>
+              <button
+                @click="showExamPreview = !showExamPreview"
+                class="text-[11px] px-2 py-0.5 border transition-colors"
+                :class="showExamPreview ? 'border-primary/40 bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'"
+              >📐 预览公式</button>
+            </div>
+            <Textarea v-model="answers[currentIdx]" :rows="4" placeholder="输入答案...（支持 $公式$ 语法）" />
+            <div v-if="showExamPreview && answers[currentIdx]" class="p-3 border border-border/50 bg-muted/30 min-h-[2em] text-sm leading-relaxed">
+              <KatexRender :text="answers[currentIdx]" />
+            </div>
+          </div>
 
           <!-- 多选 -->
           <div
@@ -146,7 +159,7 @@
                 "
                 >{{ String.fromCharCode(65 + i) }}</span
               >
-              <span class="text-sm leading-relaxed pt-0.5">{{ opt }}</span>
+              <span class="text-sm leading-relaxed pt-0.5"><KatexRender :text="stripOpt(opt)" /></span>
             </div>
           </div>
 
@@ -174,7 +187,7 @@
                 "
                 >{{ String.fromCharCode(65 + i) }}</span
               >
-              <span class="text-sm leading-relaxed pt-0.5">{{ opt }}</span>
+              <span class="text-sm leading-relaxed pt-0.5"><KatexRender :text="stripOpt(opt)" /></span>
             </div>
           </div>
 
@@ -305,7 +318,15 @@
             </div>
 
             <!-- 题干 -->
-            <p class="text-sm font-medium leading-relaxed">{{ questions[wi].question }}</p>
+            <KatexRender class="text-sm font-medium leading-relaxed" :text="questions[wi].question" />
+
+            <!-- 配图 -->
+            <DiagramBoard
+              v-if="questions[wi]?.meta?.diagram || questions[wi]?.meta?.diagramSvg"
+              :config="questions[wi]?.meta?.diagram"
+              :svg="questions[wi]?.meta?.diagramSvg"
+              :width="360" :height="240"
+            />
 
             <!-- 选项 -->
             <div v-if="questions[wi].options && questions[wi].options.length" class="flex flex-col gap-0.5">
@@ -325,7 +346,7 @@
                     'border-border text-muted-foreground': !wrongDetails[wi]?.answer?.includes(String.fromCharCode(65 + j)) && answers[wi] !== String.fromCharCode(65 + j),
                   }"
                 >{{ String.fromCharCode(65 + j) }}</span>
-                <span>{{ opt }}</span>
+                <KatexRender class="text-xs" :text="stripOpt(opt)" />
               </div>
             </div>
 
@@ -333,18 +354,18 @@
             <div class="flex flex-col gap-1.5 text-xs pt-2 border-t border-border/50">
               <div class="flex gap-2">
                 <span class="text-muted-foreground w-9 flex-shrink-0">你的</span>
-                <span class="text-destructive font-medium">{{ fmtAns(answers[wi], questions[wi]) }}</span>
+                <KatexRender class="text-destructive font-medium" :text="fmtAns(answers[wi], questions[wi])" />
               </div>
               <div class="flex gap-2">
                 <span class="text-muted-foreground w-9 flex-shrink-0">正确</span>
-                <span class="text-success font-medium">{{ wrongDetails[wi]?.answer || '?' }}</span>
+                <KatexRender class="text-success font-medium" :text="wrongDetails[wi]?.answer || '?'" />
               </div>
             </div>
 
             <!-- 解析 -->
             <div v-if="wrongDetails[wi]?.explanation" class="p-3.5 bg-muted/50 border-l-2 border-primary">
               <span class="text-[10px] font-semibold text-primary uppercase tracking-wider block mb-1.5">解析</span>
-              <p class="text-xs leading-relaxed text-muted-foreground">{{ wrongDetails[wi].explanation }}</p>
+              <KatexRender class="text-xs leading-relaxed text-muted-foreground" :text="wrongDetails[wi].explanation" />
             </div>
           </div>
           </div>
@@ -402,6 +423,8 @@ import Button from "./ui/Button.vue";
 import Badge from "./ui/Badge.vue";
 import Textarea from "./ui/Textarea.vue";
 import AlertDialog from "./ui/AlertDialog.vue";
+import KatexRender from "./KatexRender.vue";
+import DiagramBoard from "./DiagramBoard.vue";
 import * as api from "../api";
 import { useExamHistory } from "../composables/useExamHistory";
 import axios from "axios";
@@ -416,6 +439,7 @@ const timer = ref(null);
 const timeLeft = ref(0);
 const examStarted = ref(false);
 const submitted = ref(false);
+const showExamPreview = ref(false);
 const score = ref(0);
 const wrongSet = ref(new Set());
 const correctSet = ref(new Set());
@@ -431,6 +455,8 @@ const { saveExam } = useExamHistory();
 const showExitDialog = ref(false);
 const showSubmitDialog = ref(false);
 
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
+
 /** 按序号升序排列的错误题号列表 */
 const sortedWrong = computed(() => Array.from(wrongSet.value).sort((a, b) => a - b));
 /** 格式化剩余时间为 mm:ss */
@@ -441,6 +467,9 @@ const timeStr = computed(() => {
   const s = (timeLeft.value % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 });
+
+const examDiagramConfig = computed(() => questions.value[currentIdx.value]?.meta?.diagram || null)
+const examDiagramSvg = computed(() => questions.value[currentIdx.value]?.meta?.diagramSvg || '')
 
 /**
  * 生成试卷：请求 /generate-paper 接口，初始化答题状态并启动倒计时

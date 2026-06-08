@@ -73,6 +73,13 @@
             <input v-model="genBankName" placeholder="默认自动命名" class="w-full px-3 py-2 text-sm bg-background border border-border outline-none focus:border-primary" />
           </div>
         </div>
+        <!-- 模型选择（独立于全局） -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium">模型</label>
+          <select v-model="genModel" class="w-full px-3 py-2 text-sm bg-background border border-border outline-none focus:border-primary transition-colors appearance-none" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%222%22 stroke-linecap=%22round%22><path d=%22m6 9 6 6 6-6%22/></svg>'); background-repeat: no-repeat; background-position: right 10px center;">
+            <option v-for="m in genModels" :key="m.id" :value="m.id">{{ m.name || m.id }}</option>
+          </select>
+        </div>
 
         <!-- 进度 -->
         <div v-if="genStatus" class="space-y-2 py-2">
@@ -132,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Upload } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import axios from 'axios'
@@ -146,7 +153,7 @@ import { getBanks, uploadFile, deleteBank } from '../api'
 import { getMistakeBook, MISTAKE_BOOK_ID } from '../utils/mistakeBook'
 import { useAiMode } from '../composables/useAiMode'
 
-const { isAiMode } = useAiMode()
+const { isAiMode, selectedModel, availableModels } = useAiMode()
 
 const remoteBanks = ref([])
 const selectedBank = ref('')
@@ -163,6 +170,8 @@ const genTopic = ref('')
 const genTotal = ref(500)
 const genBankName = ref('')
 const genStatus = ref(null)
+const genModel = ref(selectedModel.value || 'deepseek-v4-pro')
+const genModels = computed(() => availableModels.value.length ? availableModels.value : [{ id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro' }, { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' }])
 let genPollTimer = null
 
 /**
@@ -177,6 +186,7 @@ async function startGenerate() {
       topic: genTopic.value,
       total: genTotal.value,
       bankName: genBankName.value || undefined,
+      model: genModel.value,
     })
     if (res.data.ok) {
       pollGenStatus()

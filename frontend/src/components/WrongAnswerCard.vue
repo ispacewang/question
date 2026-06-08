@@ -18,14 +18,20 @@
       <div v-for="(item, i) in wrongAnswers" :key="item.questionData.questionId || i" class="flex gap-2.5 py-3.5 border-b border-border last:border-b-0">
         <div class="flex items-center justify-center w-6 h-6 border border-destructive text-destructive text-[11px] font-bold flex-shrink-0 mt-0.5">{{ i + 1 }}</div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium mb-2 leading-relaxed">{{ item.questionData.question }}</p>
+          <KatexRender class="text-sm font-medium mb-2 leading-relaxed" :text="item.questionData.question" />
+          <DiagramBoard
+            v-if="item.questionData?.meta?.diagram || item.questionData?.meta?.diagramSvg"
+            :config="item.questionData?.meta?.diagram"
+            :svg="item.questionData?.meta?.diagramSvg"
+            :width="320" :height="200"
+          />
           <div v-if="item.questionData.options?.length" class="flex flex-col gap-0.5 mb-2">
             <div v-for="(opt, j) in item.questionData.options" :key="j"
               class="text-[11px] px-1 py-0.5 flex gap-0.5"
               :class="item.questionData.correctAnswer?.includes(String.fromCharCode(65 + j)) ? 'text-success font-medium' : 'text-muted-foreground'"
             >
               <span class="font-semibold flex-shrink-0" :class="item.questionData.correctAnswer?.includes(String.fromCharCode(65 + j)) ? 'text-success' : 'text-muted-foreground'">{{ String.fromCharCode(65 + j) }}.</span>
-              <span>{{ opt }}</span>
+              <KatexRender :text="stripOpt(opt)" />
             </div>
           </div>
           <div class="flex flex-col gap-1 mb-2">
@@ -40,7 +46,7 @@
           </div>
           <div v-if="item.questionData.explanation" class="mt-1.5 p-2 bg-muted border-l-2 border-primary">
             <span class="text-[10px] font-semibold text-primary uppercase tracking-wider block mb-0.5">解析</span>
-            <p class="text-[11px] leading-relaxed text-muted-foreground m-0">{{ item.questionData.explanation }}</p>
+            <KatexRender class="text-[11px] leading-relaxed text-muted-foreground m-0" :text="item.questionData.explanation" />
           </div>
         </div>
       </div>
@@ -63,10 +69,12 @@
 import { ref } from 'vue'
 import { saveAs } from 'file-saver'
 import Button from './ui/Button.vue'
-
+import KatexRender from './KatexRender.vue'
+import DiagramBoard from './DiagramBoard.vue'
 const props = defineProps({ wrongAnswers: { type: Array, required: true, default: () => [] } })
 defineEmits(['clear'])
 const showExportMenu = ref(false)
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
 
 const fmtAns = (a) => Array.isArray(a) ? a.join(', ') : (a || '')
 
