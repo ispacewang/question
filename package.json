@@ -44,7 +44,13 @@
       "publisher": "CN=4499F0C4-83E9-49C6-B136-A9BA2D5FCE8F",
       "identityName": "20029ispace.Quesora",
       "showNameOnTiles": true,
-      "setBuildNumber": false
+      "setBuildNumber": false,
+      "restrictedCapabilities": [
+        {
+          "name": "runFullTrust",
+          "reason": "Quesora uses the Electron framework which requires full trust to run an embedded Express.js backend server for local database access (better-sqlite3), AI API proxying, and file upload processing. All these services run locally without network exposure."
+        }
+      ]
     }
   },
   "dependencies": {
