@@ -1,9 +1,9 @@
 {
-  "name": "quester",
+  "name": "quesora",
   "version": "2.5.2",
   "description": "答题，刷题，考试，AI生题，AI判题",
   "main": "main.js",
-  "productName": "Quester",
+  "productName": "Quesora",
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
@@ -13,7 +13,7 @@
     "build:msix": "npm run build:vue && electron-builder --win --x64 --config.win.target=appx"
   },
   "build": {
-    "appId": "com.ispace.quester",
+    "appId": "com.ispace.quesora",
     "directories": {
       "output": "release/"
     },
@@ -33,16 +33,16 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": true,
-      "artifactName": "Quester-Setup-${version}.${ext}",
-      "shortcutName": "Quester"
+      "artifactName": "Quesora-Setup-${version}.${ext}",
+      "shortcutName": "Quesora"
     },
     "appx": {
-      "applicationId": "Quester",
+      "applicationId": "Quesora",
       "backgroundColor": "#1c1c1e",
-      "displayName": "Quester",
+      "displayName": "Quesora",
       "publisherDisplayName": "ispace王",
       "publisher": "CN=4499F0C4-83E9-49C6-B136-A9BA2D5FCE8F",
-      "identityName": "20029ispace.3399075889352",
+      "identityName": "20029ispace.Quesora",
       "showNameOnTiles": true,
       "setBuildNumber": false
     }

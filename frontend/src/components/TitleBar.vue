@@ -27,7 +27,7 @@ onMounted(() => {
     <!-- 左侧 -->
     <div class="flex items-center gap-2.5 pl-3">
       <img src="/favicon1.ico" alt="icon" class="w-5 h-5" />
-      <span class="text-[14px] font-semibold text-foreground tracking-tight">Quester</span>
+      <span class="text-[14px] font-semibold text-foreground tracking-tight">Quesora</span>
     </div>
 
     <!-- 右侧 -->
