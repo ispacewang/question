@@ -27,7 +27,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "frontend/public/favicon1.ico"
+      "icon": "frontend/public/icon.ico"
     },
     "nsis": {
       "oneClick": false,
