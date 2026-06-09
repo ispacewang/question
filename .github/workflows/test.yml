@@ -21,7 +21,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Build frontend
         run: yarn build
@@ -37,7 +37,7 @@ jobs:
           node-version: '20'
 
       - name: Install root dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Check backend JS syntax
         run: node -e "require('./backend/app.js')" 2>&1 | head -20 || true

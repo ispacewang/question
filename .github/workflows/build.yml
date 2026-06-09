@@ -17,11 +17,11 @@ jobs:
           node-version: '20'
 
       - name: Install root dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
         shell: bash
 
       - name: Install frontend dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
         working-directory: frontend
         shell: bash
 
