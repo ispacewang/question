@@ -14,6 +14,10 @@
   },
   "build": {
     "appId": "com.ispace.quesora",
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    },
     "directories": {
       "output": "release/"
     },
