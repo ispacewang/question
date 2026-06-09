@@ -52,7 +52,8 @@
           <circle cx="12" cy="22" r="2" fill="currentColor"/>
         </svg>
         <svg v-else class="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30 70"/></svg>
-        {{ aiLoading ? aiProgressMsg || '分析中…' : '🤖 AI 诊断薄弱点' }}
+        <Bot v-if="!aiLoading" class="size-3.5" />
+        {{ aiLoading ? aiProgressMsg || '分析中…' : 'AI 诊断薄弱点' }}
       </button>
 
       <!-- 诊断结果 -->
@@ -74,6 +75,7 @@ import { computed } from 'vue'
 import { Doughnut, Bar } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, BarElement, CategoryScale, LinearScale } from 'chart.js'
 import { useAiDiagnosis } from '../composables/useAiDiagnosis'
+import { Bot } from 'lucide-vue-next'
 ChartJS.register(ArcElement, Tooltip, BarElement, CategoryScale, LinearScale)
 
 const props = defineProps({

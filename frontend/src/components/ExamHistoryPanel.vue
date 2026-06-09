@@ -86,13 +86,13 @@
                     </div>
                     <KatexRender class="leading-relaxed" :text="r.questions[wi]?.question" />
                     <div class="flex gap-4 pt-1.5 border-t border-border/20">
-                      <span class="text-destructive">✗ {{ fmtUserAns(r, wi) }}</span>
-                      <span class="text-success">✓ {{ r.wrongDetails[wi]?.answer || '?' }}</span>
+                      <span class="text-destructive"><X class="size-3 inline-block -mt-0.5" /> {{ fmtUserAns(r, wi) }}</span>
+                      <span class="text-success"><Check class="size-3 inline-block -mt-0.5" /> {{ r.wrongDetails[wi]?.answer || '?' }}</span>
                     </div>
                     <KatexRender v-if="r.wrongDetails[wi]?.explanation" class="text-[10px] text-muted-foreground pt-1.5 border-t border-border/20 leading-relaxed" :text="r.wrongDetails[wi].explanation" />
                   </div>
                 </div>
-                <div v-else class="pt-4 text-xs text-success font-medium">🎉 满分通过！</div>
+                <div v-else class="pt-4 text-xs text-success font-medium"><Trophy class="size-4 inline-block -mt-0.5" /> 满分通过！</div>
 
                 <button
                   @click.stop="removeRecord(r.id)"
@@ -113,6 +113,7 @@ import { ref } from 'vue'
 import Badge from './ui/Badge.vue'
 import KatexRender from './KatexRender.vue'
 import { useExamHistory } from '../composables/useExamHistory'
+import { X, Check, Trophy } from 'lucide-vue-next'
 
 defineProps({ open: Boolean })
 defineEmits(['close'])

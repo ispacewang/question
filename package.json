@@ -1,18 +1,19 @@
 {
-  "name": "questions-desktop",
+  "name": "quester",
   "version": "2.5.2",
   "description": "答题，刷题，考试，AI生题，AI判题",
   "main": "main.js",
+  "productName": "Quester",
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
     "build:vue": "cd frontend && npm run build",
     "rebuild": "electron-rebuild -f",
-    "build:win": "npm run build:vue && electron-builder --win --x64"
+    "build:win": "npm run build:vue && electron-builder --win --x64",
+    "build:msix": "npm run build:vue && electron-builder --win --x64 --config.win.target=appx"
   },
   "build": {
-    "appId": "com.yourcompany.mydesktopapp",
-    "productName": "答题小助手",
+    "appId": "com.ispace.quester",
     "directories": {
       "output": "release/"
     },
@@ -31,7 +32,19 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": true
+      "perMachine": true,
+      "artifactName": "Quester-Setup-${version}.${ext}",
+      "shortcutName": "Quester"
+    },
+    "appx": {
+      "applicationId": "Quester",
+      "backgroundColor": "#1c1c1e",
+      "displayName": "Quester",
+      "publisherDisplayName": "ispace王",
+      "publisher": "CN=4499F0C4-83E9-49C6-B136-A9BA2D5FCE8F",
+      "identityName": "20029ispace.3399075889352",
+      "showNameOnTiles": true,
+      "setBuildNumber": false
     }
   },
   "dependencies": {

@@ -154,12 +154,7 @@ const startExam = () => {
   })
 }
 
-const showIntroDialog = ref(false)
 onMounted(() => {
-  if (!localStorage.getItem('ai-quiz-intro-shown')) {
-    showIntroDialog.value = true
-    localStorage.setItem('ai-quiz-intro-shown', '1')
-  }
   aiModeModule.checkConfig().then(() => {
     if (isAiMode.value) fetchModelList()
   })
@@ -268,25 +263,6 @@ watch(hasStats, (v) => { if (v) leftOpen.value = true })
         </Button>
       </div>
     </div>
-
-    <!-- 引导弹窗 -->
-    <Dialog :open="showIntroDialog" @update:open="showIntroDialog = $event" class="sm:max-w-[420px]">
-      <DialogHeader>
-        <DialogTitle>功能介绍</DialogTitle>
-        <DialogDescription>答题小助手 — 题库上传、刷题、考试、错题本</DialogDescription>
-      </DialogHeader>
-      <div class="text-sm leading-relaxed">
-        <ul class="space-y-1 pl-4 list-disc text-muted-foreground">
-          <li>Excel/CSV 题库一键上传</li>
-          <li>刷题模式 + 考试模式切换</li>
-          <li>题型雷达图分析</li>
-          <li>多题型：单选 / 多选 / 判断</li>
-        </ul>
-      </div>
-      <DialogFooter>
-        <Button @click="showIntroDialog = false">开始使用</Button>
-      </DialogFooter>
-    </Dialog>
 
     <!-- 考试弹窗 -->
     <Dialog :open="showExamDialog" @update:open="showExamDialog = $event" class="sm:max-w-[440px]">

@@ -1,4 +1,5 @@
 // backend/paper-pdf.js — 试卷 + 答案 PDF 生成（HTML → Electron printToPDF）
+// 排版风格：传统试卷，黑白打印友好，适合学生手写作答
 const { BrowserWindow } = require('electron');
 const db = require('./db');
 const path = require('path');
@@ -24,12 +25,12 @@ function renderToPdf(html, filename) {
       try {
         const data = await win.webContents.printToPDF({
           printBackground: true,
-          marginsType: 0, // use CSS @page margins
+          marginsType: 0,
           pageSize: 'A4',
           landscape: false,
           displayHeaderFooter: true,
           headerTemplate: '<span></span>',
-          footerTemplate: '<div style="font-size:9pt;text-align:center;width:100%;font-family:SimSun,\'宋体\',serif;color:#888;">— <span class="pageNumber"></span> —</div>',
+          footerTemplate: '<div style="font-size:9pt;text-align:center;width:100%;font-family:SimSun,serif;color:#999;">— <span class="pageNumber"></span> —</div>',
         });
         fs.writeFileSync(tmpPath, data);
         win.close();
@@ -61,7 +62,6 @@ function fetchQuestions(bankName, typeCounts) {
   const bank = db.prepare('SELECT id FROM banks WHERE name = ?').get(bankName);
   if (!bank) return [];
 
-  // 未指定题型数量时，使用考试默认值（仅选择/判断题）
   const counts = typeCounts || {
     '单选题': 40, '多选题': 30, '判断题': 30,
   };
@@ -69,7 +69,6 @@ function fetchQuestions(bankName, typeCounts) {
   const all = [];
   for (const [type, count] of Object.entries(counts)) {
     if (count <= 0) continue;
-    // 查询该题型的实际数量，不超过 count
     const rows = db.prepare(
       `SELECT * FROM questions WHERE bank_id = ? AND type = ? ORDER BY RANDOM() LIMIT ?`
     ).all(bank.id, type, count);
@@ -81,16 +80,39 @@ function fetchQuestions(bankName, typeCounts) {
 function renderMath(text) {
   if (!text || !katex) return escapeHtml(text);
   try {
-    let result = escapeHtml(text);
-    result = result.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => {
-      try { return katex.renderToString(m.trim(), { displayMode: true, throwOnError: false, strict: false }); }
-      catch { return `$${m}$`; }
-    });
-    result = result.replace(/(?<!\\)\$([^\s$](?:[^$]*?[^\s\\])?)\$/g, (_, m) => {
-      try { return katex.renderToString(m, { displayMode: false, throwOnError: false, strict: false }); }
-      catch { return `$${m}$`; }
-    });
-    return result;
+    // 先切分：纯文本和 $...$ / $$...$$ 公式块，只对纯文本做 HTML 转义
+    const parts = [];
+    let remaining = text;
+    // 匹配 $$...$$ 或 $...$（不匹配 \$ 转义的）
+    const regex = /(\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\\])+?\$)/g;
+    let lastIdx = 0;
+    let m;
+    while ((m = regex.exec(remaining)) !== null) {
+      if (m.index > lastIdx) {
+        parts.push({ raw: false, text: remaining.slice(lastIdx, m.index) });
+      }
+      const full = m[0];
+      const isDisplay = full.startsWith('$$');
+      const formula = isDisplay ? full.slice(2, -2).trim() : full.slice(1, -1);
+      try {
+        parts.push({
+          raw: true,
+          html: katex.renderToString(formula, {
+            displayMode: isDisplay,
+            throwOnError: false,
+            strict: false,
+          }),
+        });
+      } catch {
+        parts.push({ raw: false, text: full });
+      }
+      lastIdx = regex.lastIndex;
+    }
+    if (lastIdx < remaining.length) {
+      parts.push({ raw: false, text: remaining.slice(lastIdx) });
+    }
+    // 组装：非公式段做 HTML 转义，公式段直接拼接 KaTeX HTML
+    return parts.map(p => p.raw ? p.html : escapeHtml(p.text)).join('');
   } catch { return escapeHtml(text); }
 }
 
@@ -98,6 +120,10 @@ function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// ══════════════════════════════════════════════
+// 试卷 HTML 构建
+// ══════════════════════════════════════════════
 
 function buildPaperHtml(bankName, questions, isAnswer) {
   let globalIdx = 0;
@@ -135,7 +161,12 @@ function buildPaperHtml(bankName, questions, isAnswer) {
     }
   }
 
-  // 答案汇总（用 renderMath 渲染公式）
+  // 试卷版 — 末尾加总分统计行
+  const scoreLine = !isAnswer
+    ? `<div class="score-total">总分：________ 分&emsp;&emsp;阅卷人：________</div>`
+    : '';
+
+  // 答案版 — 参考答案汇总
   let answerSummary = '';
   if (isAnswer) {
     answerSummary = `<div class="page-break"></div><div class="section-title">参考答案</div>\n`;
@@ -151,7 +182,7 @@ function buildPaperHtml(bankName, questions, isAnswer) {
 
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-  const titleLabel = isAnswer ? `${escapeHtml(bankName)} 试卷（答案版）` : `${escapeHtml(bankName)} 试卷`;
+  const titleLabel = isAnswer ? `${escapeHtml(bankName)}（答案）` : `${escapeHtml(bankName)}`;
   const katexCss = getKatexCss();
 
   return `<!DOCTYPE html>
@@ -161,59 +192,187 @@ function buildPaperHtml(bankName, questions, isAnswer) {
 <style>
   @page {
     size: A4;
-    margin: 22mm 20mm 20mm 22mm;
+    margin: 20mm 22mm 22mm 22mm;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   ${katexCss}
+
+  /* ═══ 基础 ═══ */
   body {
-    font-family: "SimSun","宋体","Noto Serif CJK SC","Source Han Serif SC",serif;
-    font-size: 12pt; line-height: 1.8; color: #000;
-    padding: 0;
+    font-family: "SimSun","宋体","Noto Serif CJK SC",serif;
+    font-size: 11pt;
+    line-height: 2;
+    color: #000;
+    background: #fff;
   }
-  .paper-header { text-align:center; margin-bottom:6mm; border-bottom:3px double #000; padding-bottom:4mm; }
-  .paper-title { font-size:18pt; font-weight:bold; font-family:"SimHei","黑体","Noto Sans CJK SC",sans-serif; letter-spacing:3px; margin-bottom:5mm; }
-  .paper-info { text-align:center; font-size:11pt; margin-top:3mm; }
-  .paper-info span { margin:0 5mm; white-space:nowrap; }
-  .paper-info .underline { display:inline-block; min-width:55px; border-bottom:1px solid #000; margin:0 2px; }
-  .section-title { font-size:13pt; font-weight:bold; font-family:"SimHei","黑体","Noto Sans CJK SC",sans-serif; margin:5mm 0 2mm 0; }
-  .instruction { font-size:10pt; color:#444; margin-bottom:2mm; padding-left:2mm; }
-  .question { margin:3.5mm 0 1mm 0; line-height:1.7; }
-  .q-num { font-weight:bold; }
-  .q-bracket { font-size:11pt; color:#000; }
-  .q-text { font-size:12pt; }
-  .options { display:flex; flex-wrap:wrap; gap:2mm 8mm; padding-left:10mm; margin-bottom:3mm; font-size:11pt; }
-  .opt { white-space:nowrap; }
-  .blank-area { padding-left:8mm; font-size:11pt; margin-bottom:3mm; }
-  .blank-line { display:inline-block; min-width:120px; border-bottom:1px solid #000; margin-left:2px; }
-  .answer-area {
-    padding-left: 6mm; font-size: 11pt; margin-bottom: 5mm;
-    min-height: 25mm; border: 1px solid #ddd; padding: 3mm 6mm;
+
+  /* ═══ 试卷头 ═══ */
+  .paper-header {
+    text-align: center;
+    margin-bottom: 6mm;
+    padding-bottom: 4mm;
+    border-bottom: 1.5pt solid #000;
   }
-  .diagram-box { text-align:center; margin:3mm 0; padding:2mm; border:1px solid #ddd; }
-  .diagram-box svg { max-width:100%; height:auto; }
-  .answer-row { margin:1.5mm 0; font-size:11pt; }
-  .answer-val { color:#c00; font-weight:bold; }
-  .answer-note { font-size:10pt; color:#555; padding-left:8mm; margin-bottom:1mm; }
-  .page-break { page-break-after:always; }
-  .katex { font-size:1em !important; }
-  .katex-display { margin:1mm 0 !important; }
+  .paper-title {
+    font-size: 16pt;
+    font-weight: bold;
+    font-family: "SimHei","黑体","Noto Sans CJK SC",sans-serif;
+    letter-spacing: 2px;
+    margin-bottom: 5mm;
+  }
+  .paper-meta {
+    display: flex;
+    justify-content: center;
+    gap: 8mm;
+    font-size: 10.5pt;
+    flex-wrap: wrap;
+  }
+  .paper-meta .field {
+    display: inline-flex;
+    align-items: baseline;
+    white-space: nowrap;
+  }
+  .paper-meta .blank {
+    display: inline-block;
+    min-width: 50px;
+    border-bottom: 1px solid #000;
+    margin: 0 1px;
+  }
+
+  /* ═══ 大题标题 ═══ */
+  .section-title {
+    font-size: 13pt;
+    font-weight: bold;
+    font-family: "SimHei","黑体","Noto Sans CJK SC",sans-serif;
+    margin: 6mm 0 1.5mm 0;
+  }
+  .instruction {
+    font-size: 10pt;
+    color: #333;
+    margin-bottom: 2mm;
+    padding-left: 4mm;
+    line-height: 1.6;
+  }
+
+  /* ═══ 题目 ═══ */
+  .question {
+    margin: 4mm 0 1mm 0;
+    text-indent: 0;
+  }
+  .q-num { font-weight: bold; margin-right: 1mm; }
+  .q-bracket {
+    display: inline-block;
+    width: 28px;
+    text-align: center;
+    font-size: 11pt;
+    color: #000;
+    margin-right: 2mm;
+  }
+
+  /* ═══ 选项（传统竖排） ═══ */
+  .options {
+    padding-left: 8mm;
+    margin-bottom: 3mm;
+    font-size: 10.5pt;
+    line-height: 2;
+  }
+  .opt {
+    display: block;
+    padding: 0.3mm 0;
+  }
+
+  /* ═══ 判断题 ═══ */
+  .judge-q { margin: 4mm 0 3mm 0; }
+
+  /* ═══ 填空题 ═══ */
+  .fill-q { margin: 4mm 0 3mm 0; }
+  .blank-line {
+    display: inline-block;
+    min-width: 100px;
+    border-bottom: 1px solid #000;
+    margin: 0 3px;
+  }
+
+  /* ═══ 简答题 — 横线答卷区 ═══ */
+  .answer-lines {
+    padding-left: 6mm;
+    margin: 1mm 0 5mm 0;
+  }
+  .answer-lines .rule {
+    width: 100%;
+    border-bottom: 1px solid #ccc;
+    height: 8mm;
+  }
+
+  /* ═══ 配图 ═══ */
+  .diagram-box {
+    text-align: center;
+    margin: 2mm 0;
+    padding: 2mm;
+    border: 1px solid #ccc;
+  }
+  .diagram-box svg { max-width: 100%; height: auto; }
+
+  /* ═══ 答案版样式 ═══ */
+  .answer-val {
+    color: #000;
+    font-weight: bold;
+    font-family: "SimHei","黑体",sans-serif;
+  }
+  .answer-note {
+    font-size: 10pt;
+    color: #333;
+    padding-left: 8mm;
+    margin-bottom: 1.5mm;
+    line-height: 1.7;
+  }
+  .answer-row {
+    margin: 1.5mm 0;
+    font-size: 10.5pt;
+    padding-left: 4mm;
+  }
+  .answer-row .answer-val {
+    font-size: 11pt;
+  }
+
+  /* ═══ 试卷版 — 总分/阅卷 ═══ */
+  .score-total {
+    margin-top: 8mm;
+    padding-top: 3mm;
+    border-top: 1px solid #ccc;
+    text-align: right;
+    font-size: 10.5pt;
+    color: #333;
+  }
+
+  /* ═══ 分页 ═══ */
+  .page-break { page-break-after: always; }
+
+  /* ═══ KaTeX 微调 ═══ */
+  .katex { font-size: 1em !important; }
+  .katex-display { margin: 1mm 0 !important; }
 </style>
 </head>
 <body>
   <div class="paper-header">
     <div class="paper-title">${titleLabel}</div>
-    <div class="paper-info">
-      <span>姓名：<span class="underline"></span></span>
-      <span>班级：<span class="underline"></span></span>
-      <span>得分：<span class="underline"></span></span>
-      <span>日期：${dateStr}</span>
+    <div class="paper-meta">
+      <span class="field">姓名：<span class="blank"></span></span>
+      <span class="field">班级：<span class="blank"></span></span>
+      <span class="field">学号：<span class="blank"></span></span>
+      <span class="field">日期：${dateStr}</span>
     </div>
   </div>
   ${body}
+  ${scoreLine}
   ${answerSummary}
 </body>
 </html>`;
 }
+
+// ══════════════════════════════════════════════
+// 各题型渲染
+// ══════════════════════════════════════════════
 
 function renderChoiceQs(qs, startIdx, isAnswer) {
   let html = '';
@@ -221,8 +380,10 @@ function renderChoiceQs(qs, startIdx, isAnswer) {
     const idx = startIdx + i + 1;
     const opts = parseJsonSafe(q.options, []);
     const diagramHtml = getDiagramHtml(q);
-    const answerTxt = isAnswer ? `<span class="answer-val">【${formatAnswer(q)}】</span>` : `<span class="q-bracket">（&ensp;&ensp;）</span>`;
-    html += `<div class="question"><span class="q-num">${idx}.</span>${answerTxt}<span class="q-text">${renderMath(q.question)}</span></div>\n`;
+    const answerTxt = isAnswer
+      ? `<span class="answer-val">【${formatAnswer(q)}】</span>`
+      : `<span class="q-bracket">（&ensp;&ensp;）</span>`;
+    html += `<div class="question"><span class="q-num">${idx}.</span>${answerTxt}&nbsp;${renderMath(q.question)}</div>\n`;
     if (diagramHtml) html += diagramHtml;
     html += `<div class="options">`;
     opts.forEach((o, j) => {
@@ -230,7 +391,7 @@ function renderChoiceQs(qs, startIdx, isAnswer) {
     });
     html += `</div>\n`;
     if (isAnswer && q.explanation) {
-      html += `<div class="answer-note">解析：${renderMath(q.explanation)}</div>\n`;
+      html += `<div class="answer-note">【解析】${renderMath(q.explanation)}</div>\n`;
     }
   });
   return html;
@@ -241,8 +402,10 @@ function renderJudgeQs(qs, startIdx, isAnswer) {
   qs.forEach((q, i) => {
     const idx = startIdx + i + 1;
     const diagramHtml = getDiagramHtml(q);
-    const answerTxt = isAnswer ? `<span class="answer-val">【${formatAnswer(q)}】</span>` : `<span class="q-bracket">（&ensp;&ensp;）</span>`;
-    html += `<div class="question"><span class="q-num">${idx}.</span>${answerTxt}<span class="q-text">${renderMath(q.question)}</span></div>\n`;
+    const answerTxt = isAnswer
+      ? `<span class="answer-val">【${formatAnswer(q)}】</span>`
+      : `<span class="q-bracket">（&ensp;&ensp;）</span>`;
+    html += `<div class="judge-q"><span class="q-num">${idx}.</span>${answerTxt}&nbsp;${renderMath(q.question)}</div>\n`;
     if (diagramHtml) html += diagramHtml;
   });
   return html;
@@ -253,12 +416,12 @@ function renderFillQs(qs, startIdx, isAnswer) {
   qs.forEach((q, i) => {
     const idx = startIdx + i + 1;
     const diagramHtml = getDiagramHtml(q);
-    html += `<div class="question"><span class="q-num">${idx}.</span><span class="q-text">${renderMath(q.question)}</span></div>\n`;
+    html += `<div class="fill-q"><span class="q-num">${idx}.</span>${renderMath(q.question)}</div>\n`;
     if (diagramHtml) html += diagramHtml;
     if (isAnswer) {
-      html += `<div class="answer-row"><span class="answer-val">答：${renderMath(formatAnswer(q))}</span></div>\n`;
+      html += `<div class="answer-note">答：<span class="answer-val">${renderMath(formatAnswer(q))}</span></div>\n`;
     } else {
-      html += `<div class="blank-area">答：<span class="blank-line"></span></div>\n`;
+      html += `<div style="padding-left:6mm;margin-bottom:3mm;">答：<span class="blank-line"></span></div>\n`;
     }
   });
   return html;
@@ -269,13 +432,18 @@ function renderShortQs(qs, startIdx, isAnswer) {
   qs.forEach((q, i) => {
     const idx = startIdx + i + 1;
     const diagramHtml = getDiagramHtml(q);
-    html += `<div class="question"><span class="q-num">${idx}.</span><span class="q-text">${renderMath(q.question)}</span></div>\n`;
+    html += `<div class="question"><span class="q-num">${idx}.</span>${renderMath(q.question)}</div>\n`;
     if (diagramHtml) html += diagramHtml;
     if (isAnswer) {
-      html += `<div class="answer-row"><span class="answer-val">参考答案：${renderMath(formatAnswer(q))}</span></div>\n`;
+      html += `<div class="answer-note">参考答：<span class="answer-val">${renderMath(formatAnswer(q))}</span></div>\n`;
       if (q.explanation) html += `<div class="answer-note">评分要点：${renderMath(q.explanation)}</div>\n`;
     } else {
-      html += `<div class="answer-area"></div>\n`;
+      // 横线答卷区 — 6 条横线用于手写
+      html += `<div class="answer-lines">`;
+      for (let r = 0; r < 6; r++) {
+        html += `<div class="rule"></div>`;
+      }
+      html += `</div>\n`;
     }
   });
   return html;
@@ -284,13 +452,12 @@ function renderShortQs(qs, startIdx, isAnswer) {
 function formatAnswer(q) {
   let ans = q.answer || '';
   if (q.type === '判断题') {
-    ans = ans === 'A' ? '正确（√）' : ans === 'B' ? '错误（×）' : ans;
+    ans = ans === 'A' ? '√' : ans === 'B' ? '×' : ans;
   }
   return ans;
 }
 
 function stripOptionPrefix(s) {
-  // 去掉 "A. " "B) " "C、 " 等前缀（支持连续的多个，如 "A. B. 选项" → "选项"）
   return s.replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '');
 }
 

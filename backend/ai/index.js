@@ -1,7 +1,7 @@
 /** @file index.js — AI 路由，API Key + 模型配置、题库生成、AI 判题、模型列表 */
 const { generateQuestions } = require('./generator');
 const { judgeQuestion } = require('./judge');
-const { fetchModels } = require('./deepseek');
+const { fetchModels, chat } = require('./deepseek');
 const db = require('../db');
 const fs = require('fs');
 const path = require('path');
@@ -157,6 +157,44 @@ function createAiRoutes() {
       result.answer = qData.answer;
       result.explanation = result.explanation || qData.explanation;
       res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── POST /diagnose ───
+  router.post('/diagnose', async (req, res) => {
+    const apiKey = cachedConfig.apiKey;
+    if (!apiKey) return res.status(400).json({ error: '请先配置 API Key' });
+    const { stats } = req.body;
+    if (!stats) return res.status(400).json({ error: '缺少统计数据' });
+
+    const { total, correct, incorrect, rate, byType, wrongTopics } = stats;
+    const byTypeLines = Object.entries(byType || {})
+      .filter(([, v]) => v.total > 0)
+      .map(([type, v]) => {
+        const r = v.total > 0 ? Math.round((v.correct / v.total) * 100) : 0;
+        return `- ${type}: ${v.correct}/${v.total} (正确率${r}%)`;
+      })
+      .join('\n');
+    const topicLines = (wrongTopics || []).length ? `- 易错知识点: ${wrongTopics.join('、')}` : '';
+
+    const prompt = `你是学习诊断助手。分析以下答题数据，给出薄弱点诊断和一条学习建议。用中文回复，不超过150字。
+
+总题数: ${total} | 正确: ${correct} | 错误: ${incorrect} | 正确率: ${rate}%
+题型表现:
+${byTypeLines || '暂无'}
+${topicLines}
+
+请直接输出分析（无需复述数据）：`;
+
+    try {
+      const model = cachedConfig.model || 'deepseek-v4-pro';
+      const result = await chat(apiKey, [
+        { role: 'system', content: '你是学习诊断助手，用中文回复。回答简洁准确，不超过150字。' },
+        { role: 'user', content: prompt },
+      ], { model, temperature: 0.7, max_tokens: 300 });
+      res.json({ ok: true, diagnosis: result });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

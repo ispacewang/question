@@ -21,7 +21,7 @@ const steps = [
     element: '[data-tour="quiz"]',
     popover: {
       title: '答题区',
-      description: '点击选项选中答案。提交后正确选项标绿、错误标红。左上角 [全部|单选|多选|判断] 可筛选题型。⚡ 速刷自动跳题。',
+      description: '点击选项选中答案。提交后正确选项标绿、错误标红。左上角 [全部|单选|多选|判断] 可筛选题型。速刷模式可自动跳题。',
       side: 'bottom',
     },
   },
@@ -45,7 +45,7 @@ const steps = [
     element: '[data-tour="theme-btn"]',
     popover: {
       title: '深色模式',
-      description: '点击 🌙/☀ 切换浅色和深色模式。',
+      description: '点击深色模式按钮切换浅色和深色主题。',
       side: 'bottom',
     },
   },

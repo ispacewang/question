@@ -104,7 +104,7 @@
               }}</Badge>
             </div>
             <Button variant="ghost" size="sm" @click="toggleMark">
-              {{ markedSet.has(currentIdx) ? "★ 已标记" : "☆ 标记" }}
+              <Star class="size-3.5" :fill="markedSet.has(currentIdx) ? 'currentColor' : 'none'" />
             </Button>
           </div>
 
@@ -126,7 +126,7 @@
                 @click="showExamPreview = !showExamPreview"
                 class="text-[11px] px-2 py-0.5 border transition-colors"
                 :class="showExamPreview ? 'border-primary/40 bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'"
-              >📐 预览公式</button>
+              ><Ruler class="size-3.5 inline-block -mt-0.5" /> 预览公式</button>
             </div>
             <Textarea v-model="answers[currentIdx]" :rows="4" placeholder="输入答案...（支持 $公式$ 语法）" />
             <div v-if="showExamPreview && answers[currentIdx]" class="p-3 border border-border/50 bg-muted/30 min-h-[2em] text-sm leading-relaxed">
@@ -218,7 +218,7 @@
           </div>
           <p class="text-xs text-muted-foreground leading-relaxed">
             · 点击答题卡序号快速跳转<br />
-            · ☆ 标记可标记疑问题目<br />
+            · <Star class="size-3 inline-block -mt-0.5" /> 标记可标记疑问题目<br />
             · 交卷后自动判分
           </p>
         </div>
@@ -279,9 +279,12 @@
           </div>
 
           <!-- 等级评语 -->
-          <p class="text-lg font-semibold mb-1">
-            {{ score === questions.length ? '🎉 满分！太厉害了！' : score / questions.length >= 0.8 ? '👏 优秀，继续加油！' : score / questions.length >= 0.6 ? '👍 不错，还有进步空间' : '💪 继续努力，你可以的！' }}
-          </p>
+          <div class="flex items-center justify-center gap-2 text-lg font-semibold mb-1">
+            <Trophy v-if="score === questions.length" class="size-5 text-amber-500" />
+            <ThumbsUp v-else-if="score / questions.length >= 0.6" class="size-5 text-primary" />
+            <TrendingUp v-else class="size-5 text-muted-foreground" />
+            <span>{{ gradeText }}</span>
+          </div>
           <p class="text-sm text-muted-foreground">
             正确率 {{ Math.round(score / questions.length * 100) }}% · 答对 {{ score }} 题 · 答错 {{ wrongSet.size }} 题
           </p>
@@ -428,6 +431,7 @@ import DiagramBoard from "./DiagramBoard.vue";
 import * as api from "../api";
 import { useExamHistory } from "../composables/useExamHistory";
 import axios from "axios";
+import { Star, Ruler, Trophy, ThumbsUp, TrendingUp } from 'lucide-vue-next'
 
 const props = defineProps({ examInfo: { type: Object, required: true } });
 
@@ -470,6 +474,14 @@ const timeStr = computed(() => {
 
 const examDiagramConfig = computed(() => questions.value[currentIdx.value]?.meta?.diagram || null)
 const examDiagramSvg = computed(() => questions.value[currentIdx.value]?.meta?.diagramSvg || '')
+
+/** 等级评语文本 */
+const gradeText = computed(() => {
+  if (score.value === questions.value.length) return '满分！太厉害了！'
+  if (score.value / questions.value.length >= 0.8) return '优秀，继续加油！'
+  if (score.value / questions.value.length >= 0.6) return '不错，还有进步空间'
+  return '继续努力，你可以的！'
+})
 
 /**
  * 生成试卷：请求 /generate-paper 接口，初始化答题状态并启动倒计时

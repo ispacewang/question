@@ -1,20 +1,15 @@
 // src/composables/useAiDiagnosis.js
-// AI 薄弱点诊断 — 从错题数据生成诊断分析
+// AI 薄弱点诊断 — 调用 DeepSeek API
 
 import { ref, computed } from 'vue'
 import { getMistakeBook } from '../utils/mistakeBook'
-import { buildDiagnosisPrompt } from '../ai/prompts'
-import { loadModel, generate, onAIProgress } from '../ai/service'
+import axios from 'axios'
 
 export function useAiDiagnosis(quizStats) {
   const diagnosis = ref('')
   const loading = ref(false)
   const progressMsg = ref('')
   const error = ref('')
-
-  onAIProgress((msg) => {
-    progressMsg.value = msg
-  })
 
   /**
    * 从错题本提取分析数据
@@ -55,7 +50,7 @@ export function useAiDiagnosis(quizStats) {
   })
 
   /**
-   * 运行诊断
+   * 运行诊断（调用 DeepSeek API）
    */
   async function runDiagnosis() {
     const data = collectAnalysisData.value
@@ -67,17 +62,18 @@ export function useAiDiagnosis(quizStats) {
     loading.value = true
     error.value = ''
     diagnosis.value = ''
+    progressMsg.value = 'AI 正在分析…'
 
     try {
-      await loadModel()
-      const prompt = buildDiagnosisPrompt(data)
-      const result = await generate(prompt, 200)
-      diagnosis.value = result || '模型暂未返回有效结果，请重试。'
+      const res = await axios.post('http://localhost:13002/api/ai/diagnose', { stats: data })
+      diagnosis.value = res.data.diagnosis || '分析完成，暂无建议。'
     } catch (e) {
-      error.value = e.message || '诊断失败'
+      const msg = e.response?.data?.error || '诊断失败，请检查 API Key'
+      error.value = msg
       diagnosis.value = ''
     } finally {
       loading.value = false
+      progressMsg.value = ''
     }
   }
 

@@ -10,7 +10,7 @@
         : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-muted hover:border-border'"
       @click="selectBank(mistakeBank.id)"
     >
-      <span class="text-sm leading-none">📝</span>
+      <Pencil class="size-3.5" />
       <span class="max-w-[100px] truncate">{{ mistakeBank.name }}</span>
       <span class="text-[10px] font-bold px-1.5 leading-4 min-w-4 text-center rounded-none"
         :class="selectedBank === mistakeBank.id ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300' : 'bg-amber-400/10 text-amber-600 dark:text-amber-400'"
@@ -27,7 +27,7 @@
         : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-muted hover:border-border'"
       @click="selectBank(bank)"
     >
-      <span class="text-sm leading-none">📚</span>
+      <BookOpen class="size-3.5" />
       <span class="max-w-[100px] truncate">{{ bank }}</span>
       <span class="inline-flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-destructive text-sm leading-none ml-0.5" @click.stop="onDeleteBank(bank)">×</span>
     </button>
@@ -39,7 +39,7 @@
       data-tour="gen-btn"
       class="liquid-btn inline-flex items-center px-3 py-1 text-xs font-semibold select-none whitespace-nowrap"
     >
-      <span class="liquid-btn-inner px-2">✨ 生成题库</span>
+      <span class="liquid-btn-inner px-2"><Sparkles class="size-3.5 inline-block -mt-0.5" /> 生成题库</span>
       <span v-if="genStatus?.running" class="text-[9px] opacity-70 ml-1">{{ genStatus.progress || 0 }}</span>
     </button>
 
@@ -84,10 +84,21 @@
         <!-- 进度 -->
         <div v-if="genStatus" class="space-y-2 py-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="text-muted-foreground">
-              {{ genStatus.done ? `✅ 完成 — ${genStatus.count} 题` : genStatus.error ? `❌ ${genStatus.error}` : `生成中… ${genStatus.progress || 0} / ${genStatus.total || 500}` }}
+            <span class="text-muted-foreground flex items-center gap-1">
+              <template v-if="genStatus.done">
+                <CircleCheck class="size-3.5 text-success" />
+                完成 — {{ genStatus.count }} 题
+              </template>
+              <template v-else-if="genStatus.error">
+                <CircleX class="size-3.5 text-destructive" />
+                {{ genStatus.error }}
+              </template>
+              <template v-else>
+                <Loader class="size-3.5 animate-spin text-primary" />
+                生成中… {{ genStatus.progress || 0 }} / {{ genStatus.total || 500 }}
+              </template>
             </span>
-            <span v-if="genStatus.running" class="text-primary animate-pulse">⏳</span>
+            <span v-if="genStatus.running" class="text-primary"><Loader class="size-3.5 animate-spin" /></span>
           </div>
           <div v-if="genStatus.running" class="w-full h-1.5 bg-muted overflow-hidden">
             <div class="h-full transition-all duration-500 rounded-none"
@@ -103,7 +114,7 @@
           class="liquid-btn inline-flex items-center px-4 py-1.5 text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <span class="liquid-btn-inner px-3">
-            {{ genStatus?.running ? '⏳ 生成中…' : '开始生成' }}
+            {{ genStatus?.running ? '生成中…' : '开始生成' }}
           </span>
         </button>
         <Button v-else @click="finishGenerate" class="gap-1.5">
@@ -117,7 +128,13 @@
     <Dialog :open="dialogVisible" @update:open="dialogVisible = $event" class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>上传题库</DialogTitle>
-        <DialogDescription>支持 Excel/CSV，表头：题型、题干、选项、答案、解析</DialogDescription>
+        <DialogDescription>
+          支持 Excel/CSV，表头：题型、题干、选项、答案、解析
+          <button
+            @click="downloadTemplate"
+            class="text-primary underline underline-offset-2 hover:text-primary/80 cursor-pointer"
+          >题库模板</button>
+        </DialogDescription>
       </DialogHeader>
       <div
         class="flex flex-col items-center justify-center gap-4 py-8 px-4 border-2 border-dashed cursor-pointer transition-colors"
@@ -140,7 +157,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Upload } from 'lucide-vue-next'
+import { Upload, Pencil, BookOpen, Sparkles, CircleCheck, CircleX, Loader } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import axios from 'axios'
 import Dialog from './ui/Dialog.vue'
@@ -283,6 +300,27 @@ const selectBank = (id) => {
 }
 
 const onDrop = (e) => { dragOver.value = false; const file = e.dataTransfer?.files?.[0]; if (file) doUpload(file) }
+
+/** 下载题库模板 Excel 文件 */
+function downloadTemplate() {
+  fetch('http://localhost:13002/题库模板.xlsx')
+    .then(res => {
+      if (!res.ok) throw new Error('文件不存在');
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '题库模板.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('模板下载成功');
+    })
+    .catch(() => toast.error('下载模板失败，请重试'));
+}
 const onFileChange = (e) => { const file = e.target?.files?.[0]; if (file) doUpload(file) }
 
 /**

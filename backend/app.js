@@ -396,6 +396,8 @@ function createServer() {
   const createAiRoutes = require('./ai/index');
   app.use('/api/ai', createAiRoutes());
 
+  // 静态资源：先 public/（dev 模式模板等），再 dist/（生产构建）
+  app.use(express.static(path.join(__dirname, "../frontend/public")));
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));

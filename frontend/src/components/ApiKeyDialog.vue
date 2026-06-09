@@ -7,7 +7,7 @@
         <div v-if="step === 'key'" class="w-[400px] bg-background border border-border shadow-2xl">
           <div class="flex items-center justify-between px-5 py-4 border-b border-border/50">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold">🔑 配置 DeepSeek API</span>
+              <span class="text-sm font-semibold"><Key class="size-4 inline-block -mt-0.5" /> 配置 DeepSeek API</span>
               <span class="text-[10px] px-1.5 py-0.5 border border-amber-500/30 text-amber-600 bg-amber-500/5 font-medium">Beta</span>
             </div>
             <button @click="$emit('close')" class="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors">
@@ -43,7 +43,7 @@
         <div v-else-if="step === 'model'" class="w-[400px] bg-background border border-border shadow-2xl">
           <div class="flex items-center justify-between px-5 py-4 border-b border-border/50">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold">🤖 选择模型</span>
+              <span class="text-sm font-semibold"><Bot class="size-4 inline-block -mt-0.5" /> 选择模型</span>
             </div>
             <button @click="$emit('close')" class="w-7 h-7 flex items-center justify-center hover:bg-muted transition-colors">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -86,6 +86,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Key, Bot } from 'lucide-vue-next'
 
 defineProps({ open: Boolean })
 const emit = defineEmits(['close', 'saved'])

@@ -30,10 +30,21 @@
     <!-- 进度 -->
     <div v-if="status" class="space-y-2">
       <div class="flex items-center justify-between text-xs">
-        <span class="text-muted-foreground">
-          {{ status.done ? `✅ 已生成 ${status.count} 题 → 题库「${status.bankName}」` : status.error ? `❌ ${status.error}` : `生成中… ${status.progress || 0} / ${status.total || 500}` }}
+        <span class="text-muted-foreground flex items-center gap-1">
+          <template v-if="status.done">
+            <CircleCheck class="size-3.5 text-success" />
+            已生成 {{ status.count }} 题 → 题库「{{ status.bankName }}」
+          </template>
+          <template v-else-if="status.error">
+            <CircleX class="size-3.5 text-destructive" />
+            {{ status.error }}
+          </template>
+          <template v-else>
+            <Loader class="size-3.5 animate-spin text-primary" />
+            生成中… {{ status.progress || 0 }} / {{ status.total || 500 }}
+          </template>
         </span>
-        <span v-if="status.running" class="text-primary">⏳</span>
+        <span v-if="status.running" class="text-primary"><Loader class="size-3.5 animate-spin" /></span>
       </div>
       <div v-if="status.running" class="w-full h-1 bg-muted overflow-hidden">
         <div class="h-full bg-primary transition-all duration-300" :style="{ width: ((status.progress / status.total) * 100) + '%' }" />
@@ -56,6 +67,7 @@ import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
 import axios from 'axios'
 import { useAiMode } from '../composables/useAiMode'
+import { CircleCheck, CircleX, Loader } from 'lucide-vue-next'
 
 const { selectedModel, availableModels } = useAiMode()
 

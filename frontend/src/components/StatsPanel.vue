@@ -14,11 +14,11 @@
       <div class="grid grid-cols-3 gap-3">
         <div class="text-center">
           <span class="block text-2xl font-bold tabular-nums text-success">{{ stats.correct }}</span>
-          <span class="text-[10px] text-muted-foreground">✓ 正确</span>
+          <span class="text-[10px] text-muted-foreground"><Check class="size-3 inline-block -mt-0.5" /> 正确</span>
         </div>
         <div class="text-center">
           <span class="block text-2xl font-bold tabular-nums text-destructive">{{ stats.incorrect }}</span>
-          <span class="text-[10px] text-muted-foreground">✗ 错误</span>
+          <span class="text-[10px] text-muted-foreground"><X class="size-3 inline-block -mt-0.5" /> 错误</span>
         </div>
         <div class="text-center">
           <span class="block text-2xl font-bold tabular-nums">{{ rate }}%</span>
@@ -59,6 +59,7 @@
 <script setup>
 /** @file StatsPanel.vue — 答题统计面板，数字统计+正确率进度条+题型雷达图+题型明细 */
 import { computed } from 'vue'
+import { Check, X } from 'lucide-vue-next'
 import { Radar } from 'vue-chartjs'
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip } from 'chart.js'
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip)

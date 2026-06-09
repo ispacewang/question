@@ -50,7 +50,7 @@
               </label>
               <span class="text-[11px] font-medium" :class="!orderMode ? 'text-primary' : 'text-muted-foreground'">随机</span>
             </div>
-            <Button size="xs" :variant="quickMode ? 'default' : 'outline'" @click="quickMode = !quickMode">⚡ 速刷</Button>
+            <Button size="xs" :variant="quickMode ? 'default' : 'outline'" @click="quickMode = !quickMode"><Zap class="size-3.5" /> 速刷</Button>
           </div>
         </div>
 
@@ -72,7 +72,7 @@
               @click="showPreview = !showPreview"
               class="text-[11px] px-2 py-0.5 border transition-colors"
               :class="showPreview ? 'border-primary/40 bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'"
-            >📐 预览公式</button>
+            ><Ruler class="size-3.5 inline-block -mt-0.5" /> 预览公式</button>
           </div>
           <Textarea v-model="userAnswer" :rows="4" :placeholder="isShortAnswer ? '输入你的答案...（支持 $公式$ 语法）' : '输入正确答案...（支持 $公式$ 语法）'" />
           <div v-if="showPreview && userAnswer" class="p-3 border border-border/50 bg-muted/30 min-h-[2em] text-sm leading-relaxed">
@@ -111,7 +111,11 @@
             :disabled="!userAnswer || aiJudging"
             class="liquid-btn inline-flex items-center px-3 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span class="liquid-btn-inner px-2">{{ aiJudging ? '⏳ 判题中' : '✨ AI 判题' }}</span>
+            <span class="liquid-btn-inner px-2">
+              <Loader v-if="aiJudging" class="size-3.5 inline-block animate-spin" />
+              <Sparkles v-else class="size-3.5 inline-block" />
+              {{ aiJudging ? '判题中' : 'AI 判题' }}
+            </span>
           </button>
           <Button v-else-if="showResult" size="sm" @click="nextQuestion">下一题 →</Button>
           <div class="flex-1" />
@@ -123,7 +127,7 @@
             :class="lastResult?.correct
               ? 'bg-success/[0.06] dark:bg-success/[0.12] border-l-success text-success dark:text-success'
               : 'bg-destructive/[0.06] dark:bg-destructive/[0.10] border-l-destructive text-destructive dark:text-destructive'"
-          >{{ lastResult?.correct ? '✓ 回答正确！' : '✗ 回答错误' }}</div>
+          ><Check v-if="lastResult?.correct" class="size-4 inline-block -mt-0.5" /><X v-else class="size-4 inline-block -mt-0.5" /> {{ lastResult?.correct ? '回答正确！' : '回答错误' }}</div>
           <div v-if="!lastResult?.correct" class="flex gap-2 text-sm px-4">
             <span class="text-muted-foreground flex-shrink-0">正确答案：</span>
             <KatexRender class="font-semibold text-success" :text="fmtAnswer" />
@@ -148,6 +152,7 @@ import Textarea from './ui/Textarea.vue'
 import BankSelector from './BankSelector.vue'
 import KatexRender from './KatexRender.vue'
 import DiagramBoard from './DiagramBoard.vue'
+import { Zap, Ruler, Loader, Sparkles, Check, X } from 'lucide-vue-next'
 import * as api from '../api'
 import { getMistakeBook, removeQuestionFromMistakeBook, MISTAKE_BOOK_ID } from '../utils/mistakeBook'
 import { useAiMode } from '../composables/useAiMode'
