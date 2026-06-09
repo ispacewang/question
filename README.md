@@ -6,6 +6,14 @@
   <img src="frontend/public/favicon1.ico" width="64" alt="icon">
 </p>
 
+<p align="center">
+  <a href="https://github.com/ispacewang/quesora/releases"><img src="https://img.shields.io/github/v/release/ispacewang/quesora?color=%234a7dbf" alt="version"></a>
+  <a href="https://github.com/ispacewang/quesora/actions/workflows/test.yml"><img src="https://github.com/ispacewang/quesora/actions/workflows/test.yml/badge.svg" alt="test"></a>
+  <a href="https://github.com/ispacewang/quesora/actions/workflows/build.yml"><img src="https://github.com/ispacewang/quesora/actions/workflows/build.yml/badge.svg" alt="build"></a>
+  <img src="https://img.shields.io/badge/platform-Windows-4a7dbf" alt="platform">
+  <img src="https://img.shields.io/badge/license-ISC-4a7dbf" alt="license">
+</p>
+
 ## 功能特性
 
 - 📤 **题库上传** — 支持 Excel / CSV 文件导入，自动解析题目（单选/多选/判断/简答/填空）
@@ -110,4 +118,4 @@ yarn build:win
 
 ## 下载
 
-前往 [Releases](https://github.com/ispacewang/question/releases) 页面下载最新版安装包。
+前往 [Releases](https://github.com/ispacewang/quesora/releases) 页面下载最新版安装包。
