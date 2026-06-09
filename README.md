@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ispacewang/quesora/releases"><img src="https://img.shields.io/github/v/release/ispacewang/quesora?color=%234a7dbf" alt="version"></a>
+  <a href="https://github.com/ispacewang/quesora/releases"><img src="https://img.shields.io/github/v/tag/ispacewang/quesora?color=%234a7dbf" alt="version"></a>
   <a href="https://github.com/ispacewang/quesora/actions/workflows/test.yml"><img src="https://github.com/ispacewang/quesora/actions/workflows/test.yml/badge.svg" alt="test"></a>
   <a href="https://github.com/ispacewang/quesora/actions/workflows/build.yml"><img src="https://github.com/ispacewang/quesora/actions/workflows/build.yml/badge.svg" alt="build"></a>
   <img src="https://img.shields.io/badge/platform-Windows-4a7dbf" alt="platform">
