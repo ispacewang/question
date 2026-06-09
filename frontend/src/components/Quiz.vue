@@ -84,7 +84,7 @@
         <div v-else class="flex flex-col gap-1.5 mb-6">
           <div v-for="(opt, i) in question.options" :key="i"
             @click="!showResult && selectOption(i)"
-            class="flex items-start gap-3 px-3.5 py-3 border transition-all duration-200 cursor-pointer select-none"
+            class="flex items-start gap-3 px-3.5 py-3 border transition-colors duration-200 cursor-pointer select-none"
             :class="optionClass(i)"
           >
             <span class="flex items-center justify-center w-6 h-6 border text-xs font-semibold flex-shrink-0 transition-colors"

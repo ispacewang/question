@@ -4,7 +4,7 @@
     <!-- 错题库 -->
     <button
       v-if="mistakeBank.hasMistakes"
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all duration-200 select-none whitespace-nowrap border"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors duration-200 select-none whitespace-nowrap border"
       :class="selectedBank === mistakeBank.id
         ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-400 text-amber-800 dark:text-amber-300 shadow-sm'
         : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-muted hover:border-border'"
@@ -21,7 +21,7 @@
     <button
       v-for="bank in remoteBanks"
       :key="bank"
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all duration-200 select-none whitespace-nowrap border"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors duration-200 select-none whitespace-nowrap border"
       :class="selectedBank === bank
         ? 'bg-primary/15 border-primary text-primary shadow-sm'
         : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-muted hover:border-border'"
@@ -45,7 +45,7 @@
 
     <!-- 上传 -->
     <button
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-muted/30 border border-dashed border-muted-foreground/20 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 hover:border-solid transition-all duration-200 select-none whitespace-nowrap"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-muted/30 border border-dashed border-muted-foreground/20 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 hover:border-solid transition-colors duration-200 select-none whitespace-nowrap"
       @click="dialogVisible = true"
     >
       <span class="text-base font-light leading-none">+</span>

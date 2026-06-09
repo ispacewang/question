@@ -47,6 +47,8 @@ function createWindow () {
 
   win.on('maximize', () => win.webContents.send('window-state-changed', true));
   win.on('unmaximize', () => win.webContents.send('window-state-changed', false));
+  win.on('enter-full-screen', () => win.webContents.send('window-state-changed', 'fullscreen'));
+  win.on('leave-full-screen', () => win.webContents.send('window-state-changed', false));
 }
 
 app.whenReady().then(() => {

@@ -142,7 +142,7 @@
             <div
               v-for="(opt, i) in questions[currentIdx].options"
               :key="i"
-              class="flex items-start gap-2.5 px-3.5 py-2.5 border border-border rounded-md cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/5 hover:translate-x-0.5"
+              class="flex items-start gap-2.5 px-3.5 py-2.5 border border-border rounded-md cursor-pointer transition-colors duration-200 hover:border-primary hover:bg-primary/5 hover:translate-x-0.5"
               :class="{
                 'border-primary bg-primary/5': answers[currentIdx]?.includes(
                   String.fromCharCode(65 + i)
@@ -171,7 +171,7 @@
             <div
               v-for="(opt, i) in questions[currentIdx].options"
               :key="i"
-              class="flex items-start gap-2.5 px-3.5 py-2.5 border border-border rounded-md cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/5 hover:translate-x-0.5"
+              class="flex items-start gap-2.5 px-3.5 py-2.5 border border-border rounded-md cursor-pointer transition-colors duration-200 hover:border-primary hover:bg-primary/5 hover:translate-x-0.5"
               :class="{
                 'border-primary bg-primary/5':
                   answers[currentIdx] === String.fromCharCode(65 + i),
