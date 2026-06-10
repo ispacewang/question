@@ -16,7 +16,6 @@ function createWindow () {
     minWidth: 800,
     minHeight: 500,
     frame: false,
-    show: false,
     icon: path.join(__dirname, 'frontend/public/favicon1.ico'),
     backgroundMaterial: 'mica',
     backgroundColor: '#1c1c1e',
@@ -36,10 +35,6 @@ function createWindow () {
   } else {
     win.loadFile(path.join(__dirname, 'frontend/dist/index.html'));
   }
-
-  win.once('ready-to-show', () => {
-    win.show();
-  });
 
   // 窗口控制
   ipcMain.on('window-minimize', () => win.minimize());
