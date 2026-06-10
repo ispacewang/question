@@ -1,6 +1,6 @@
-# 答题小助手 （Quiz Assistant）
+# Quesora
 
-一个基于 **Electron + Vue 3 + Shadcn-Vue** 的桌面端答题/刷题/考试工具，支持 AI 生成题目与智能判题。
+基于 **Electron + Vue 3 + Shadcn-Vue** 的桌面端答题/刷题/考试工具，支持 AI 生成题目与智能判题。
 
 <p align="center">
   <img src="frontend/public/favicon1.ico" width="64" alt="icon">
@@ -8,8 +8,6 @@
 
 <p align="center">
   <a href="https://github.com/ispacewang/quesora/releases"><img src="https://img.shields.io/github/v/tag/ispacewang/quesora?color=%234a7dbf" alt="version"></a>
-  <a href="https://github.com/ispacewang/quesora/actions/workflows/test.yml"><img src="https://github.com/ispacewang/quesora/actions/workflows/test.yml/badge.svg" alt="test"></a>
-  <a href="https://github.com/ispacewang/quesora/actions/workflows/build.yml"><img src="https://github.com/ispacewang/quesora/actions/workflows/build.yml/badge.svg" alt="build"></a>
   <img src="https://img.shields.io/badge/platform-Windows-4a7dbf" alt="platform">
   <img src="https://img.shields.io/badge/license-ISC-4a7dbf" alt="license">
 </p>
@@ -20,7 +18,7 @@
 - 📝 **答题模式** — Bento 风格三栏布局（统计｜答题｜错题），题型筛选，实时进度
 - 📊 **考试模式** — 自定义组卷（题型数量配置），计时考试，成绩统计
 - 🤖 **AI 生成题目** — 接入 DeepSeek API，一键生成各类型题目（5 种题型）
-- 🎯 **AI 智能判题** — 主观题（简答/填空）AI 自动判分
+- 🎯 **AI 智能判题** — 主观题（简答/填空）AI 自动判分，支持多模型切换
 - 📈 **统计面板** — Chart.js 答题统计（Doughnut + 横向 Bar 图）
 - 📕 **错题本** — 答题错题自动收集，支持按类型筛选和回顾
 - 🌙 **深色模式** — 低饱和度柔和配色，圆形扩散动画切换
@@ -29,28 +27,27 @@
 - ∑ **数学公式** — KaTeX 渲染 LaTeX 数学公式（行内 & 块级）
 - 📐 **数学图形** — JSXGraph 渲染函数图像、几何图形
 - 📄 **PDF 试卷** — 一键导出 A4 PDF 试卷 & 答案
-- 💬 **AI 对话** — 侧边 AI 对话面板，辅助答疑
 - 📋 **考试历史** — 历史考试成绩回顾与统计
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 框架 | Electron 31 |
+| 框架 | Electron 36 |
 | 前端 | Vue 3 + Vite + Shadcn-Vue + Tailwind CSS v4 |
 | 后端 | Express（内嵌于 Electron 主进程，端口 13002） |
 | 数据库 | SQLite（better-sqlite3） |
 | AI | DeepSeek API（题目生成 + 判题） |
 | 图表 | Chart.js + vue-chartjs |
 | 数学 | KaTeX + JSXGraph |
-| 打包 | electron-builder（NSIS 安装包） |
+| 打包 | electron-builder（NSIS .exe 安装包，仅 Windows） |
 
 ## 快速开始
 
 ### 环境要求
 
 - Node.js 18+
-- Windows 10/11（应用目前仅支持 Windows 构建）
+- Windows 10/11
 
 ### 开发
 
@@ -66,7 +63,7 @@ yarn dev
 ### 构建
 
 ```bash
-# 构建前端 + 打包 Windows 安装包
+# 构建前端 + 打包 Windows exe 安装包
 yarn build:win
 ```
 
@@ -100,7 +97,6 @@ yarn build:win
 │   │   │   ├── WrongAnswerPanel.vue # 错题本
 │   │   │   ├── BankSelector.vue     # 题库选择器
 │   │   │   ├── AiGeneratePanel.vue  # AI 生成面板
-│   │   │   ├── AiChatPanel.vue      # AI 对话面板
 │   │   │   ├── ExamHistoryPanel.vue # 考试历史
 │   │   │   ├── KatexMath.vue        # LaTeX 公式渲染
 │   │   │   ├── DiagramBoard.vue     # JSXGraph 图形渲染
@@ -113,9 +109,9 @@ yarn build:win
 │   │   ├── stores/       # 状态管理（Pinia）
 │   │   └── api.js        # 后端 API 封装
 │   └── dist/             # 构建产出
-└── release/              # 打包产物
+└── release/              # 打包产物（.exe 安装包）
 ```
 
 ## 下载
 
-前往 [Releases](https://github.com/ispacewang/quesora/releases) 页面下载最新版安装包。
+前往 [Releases](https://github.com/ispacewang/quesora/releases) 页面下载最新版 Windows 安装包。
