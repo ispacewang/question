@@ -18,7 +18,7 @@ function createWindow () {
     frame: false,
     icon: path.join(__dirname, 'frontend/public/favicon1.ico'),
     backgroundMaterial: 'mica',
-    backgroundColor: '#1c1c1e',
+    backgroundColor: '#00000000',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
