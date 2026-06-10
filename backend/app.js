@@ -38,7 +38,7 @@ function parseQuestions(filePath) {
         opts = row["选项"]
           .split(/\||｜/)
           .map((s) => s.trim())
-          .map((s) => s.replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, ''))
+          .map((s) => s.replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, ''))
           .filter(Boolean);
       } else if (determinedType === "判断题") {
         opts = ["正确", "错误"];

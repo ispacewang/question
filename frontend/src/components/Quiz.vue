@@ -41,15 +41,9 @@
               >{{ t.label }}</button>
             </div>
             <!-- 顺序/随机 -->
-            <div class="flex items-center gap-1.5">
-              <span class="text-[11px] font-medium" :class="orderMode ? 'text-primary' : 'text-muted-foreground'">顺序</span>
-              <label class="relative inline-block w-[34px] h-5 cursor-pointer">
-                <input type="checkbox" v-model="orderMode" @change="onModeChange" class="opacity-0 w-0 h-0" />
-                <span class="absolute inset-0 rounded-full transition-colors duration-300" :class="orderMode ? 'bg-primary' : 'bg-border'" />
-                <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform duration-300" :class="orderMode ? 'left-[17px]' : 'left-[3px]'" />
-              </label>
-              <span class="text-[11px] font-medium" :class="!orderMode ? 'text-primary' : 'text-muted-foreground'">随机</span>
-            </div>
+            <Button size="xs" :variant="!orderMode ? 'default' : 'outline'" @click="toggleOrderMode">
+              <Shuffle class="size-3.5" /> 随机
+            </Button>
             <Button size="xs" :variant="quickMode ? 'default' : 'outline'" @click="quickMode = !quickMode"><Zap class="size-3.5" /> 速刷</Button>
           </div>
         </div>
@@ -152,7 +146,7 @@ import Textarea from './ui/Textarea.vue'
 import BankSelector from './BankSelector.vue'
 import KatexRender from './KatexRender.vue'
 import DiagramBoard from './DiagramBoard.vue'
-import { Zap, Ruler, Loader, Sparkles, Check, X } from 'lucide-vue-next'
+import { Zap, Ruler, Loader, Sparkles, Check, X, Shuffle } from 'lucide-vue-next'
 import * as api from '../api'
 import { getMistakeBook, removeQuestionFromMistakeBook, MISTAKE_BOOK_ID } from '../utils/mistakeBook'
 import { useAiMode } from '../composables/useAiMode'
@@ -163,7 +157,7 @@ const bankSelectorRef = ref(null)
 const currentBank = ref('')
 const question = ref(null)
 const userAnswer = ref('')
-const orderMode = ref(false)
+const orderMode = ref(true)
 const quickMode = ref(false)
 const showPreview = ref(false)
 const loading = ref(false)
@@ -208,7 +202,7 @@ const isFillBlank = computed(() => question.value?.type === '填空题')      //
 const isMultiChoice = computed(() => question.value?.type === '多选题')    // 多选题支持多选字母
 const isMistakeBook = computed(() => currentBank.value === MISTAKE_BOOK_ID)
 
-const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, '')
 const emptyDescription = computed(() => {
   if (!currentBank.value) return '选择一个题库开始答题'
   if (isMistakeBook.value) return '错题库为空'
@@ -289,7 +283,7 @@ const loadQuestion = async () => {
   } finally { loading.value = false }
 }
 
-const onModeChange = () => { loadQuestion() }
+const toggleOrderMode = () => { orderMode.value = !orderMode.value; loadQuestion() }
 
 /**
  * 选择/取消选项。多选时维护字母数组，单选时直接设字母

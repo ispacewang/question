@@ -64,7 +64,7 @@ import DiagramBoard from './DiagramBoard.vue'
 const props = defineProps({ wrongAnswers: { type: Array, required: true, default: () => [] } })
 defineEmits(['clear'])
 const showExportMenu = ref(false)
-const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, '')
 
 /**
  * 格式化答案显示：数组用逗号拼接，非数组直接返回

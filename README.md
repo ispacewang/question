@@ -3,7 +3,7 @@
 基于 **Electron + Vue 3 + Shadcn-Vue** 的桌面端答题/刷题/考试工具，支持 AI 生成题目与智能判题。
 
 <p align="center">
-  <img src="frontend/public/favicon1.ico" width="64" alt="icon">
+  <img src="frontend/public/quesora-banner-1920x1080.png" width="800" alt="Quesora Banner">
 </p>
 
 <p align="center">

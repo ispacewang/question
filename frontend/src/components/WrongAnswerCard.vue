@@ -74,7 +74,7 @@ import DiagramBoard from './DiagramBoard.vue'
 const props = defineProps({ wrongAnswers: { type: Array, required: true, default: () => [] } })
 defineEmits(['clear'])
 const showExportMenu = ref(false)
-const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, '')
 
 const fmtAns = (a) => Array.isArray(a) ? a.join(', ') : (a || '')
 

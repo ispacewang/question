@@ -458,7 +458,7 @@ function formatAnswer(q) {
 }
 
 function stripOptionPrefix(s) {
-  return s.replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '');
+  return s.replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, '');
 }
 
 function getDiagramHtml(q) {

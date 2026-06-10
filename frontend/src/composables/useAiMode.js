@@ -21,7 +21,9 @@ export function useAiMode() {
   async function checkConfig() {
     checking.value = true
     try {
+      console.log('[useAiMode] checkConfig: 请求 GET /api/ai/config')
       const res = await axios.get(`${BASE}/config`)
+      console.log('[useAiMode] checkConfig: 响应', res.data)
       apiConfigured.value = res.data.configured
       apiKeyMasked.value = res.data.apiKey || ''
       // 回填已保存的模型
@@ -29,7 +31,8 @@ export function useAiMode() {
         selectedModel.value = res.data.model
         localStorage.setItem('quiz-ai-model', res.data.model)
       }
-    } catch {
+    } catch(e) {
+      console.error('[useAiMode] checkConfig: 失败', e.message || e)
       apiConfigured.value = false
     } finally {
       checking.value = false
@@ -55,15 +58,19 @@ export function useAiMode() {
   /** 获取可用模型列表 */
   async function fetchModelList() {
     modelsLoading.value = true
+    console.log('[useAiMode] fetchModelList: 开始, isAiMode=', aiMode.value)
     try {
       const res = await axios.get(`${BASE}/models`)
+      console.log('[useAiMode] fetchModelList: 响应', res.data)
       availableModels.value = res.data.models || []
+      console.log('[useAiMode] fetchModelList: availableModels=', availableModels.value.length, '条')
       if (res.data.current && !selectedModel.value) {
         selectedModel.value = res.data.current
         localStorage.setItem('quiz-ai-model', res.data.current)
       }
       return availableModels.value
-    } catch {
+    } catch(e) {
+      console.error('[useAiMode] fetchModelList: 失败', e.message || e, e.response?.status, e.response?.data)
       availableModels.value = []
       return []
     } finally {

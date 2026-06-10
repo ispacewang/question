@@ -459,7 +459,7 @@ const { saveExam } = useExamHistory();
 const showExitDialog = ref(false);
 const showSubmitDialog = ref(false);
 
-const stripOpt = (s) => (s || '').replace(/^(?:[A-Fa-f]\s*[.、)）：:．]\s*)+/, '')
+const stripOpt = (s) => (s || '').replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, '')
 
 /** 按序号升序排列的错误题号列表 */
 const sortedWrong = computed(() => Array.from(wrongSet.value).sort((a, b) => a - b));

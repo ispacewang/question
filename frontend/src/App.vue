@@ -155,14 +155,21 @@ const startExam = () => {
 }
 
 onMounted(() => {
+  console.log('[App] onMounted: 开始, isAiMode=', isAiMode.value)
   aiModeModule.checkConfig().then(() => {
-    if (isAiMode.value) fetchModelList()
+    console.log('[App] checkConfig完成: isAiMode=', isAiMode.value, 'apiConfigured=', apiConfigured.value)
+    if (isAiMode.value) {
+      console.log('[App] 调用 fetchModelList')
+      fetchModelList()
+    } else {
+      console.log('[App] isAiMode=false, 跳过 fetchModelList')
+    }
   })
 })
 
 // ─── AI 模式 ───
 const aiModeModule = useAiMode()
-const { aiMode, isAiMode, apiConfigured, saveApiKey, toggleMode, selectedModel, availableModels, fetchModelList, selectModel } = aiModeModule
+const { aiMode, isAiMode, apiConfigured, saveApiKey, toggleMode, selectedModel, availableModels, modelsLoading, fetchModelList, selectModel } = aiModeModule
 const showApiKeyDialog = ref(false)
 const showModelDropdown = ref(false)
 
@@ -182,9 +189,14 @@ async function onGlobalModelSelect(modelId) {
 
 /** API Key 配置完成后的回调 */
 async function onAiKeySaved() {
+  console.log('[App] onAiKeySaved 触发')
   showApiKeyDialog.value = false
   await fetchModelList()
-  if (!isAiMode.value) toggleMode()
+  console.log('[App] onAiKeySaved: fetchModelList完成, availableModels=', availableModels.value.length)
+  if (!isAiMode.value) {
+    console.log('[App] onAiKeySaved: 开启AI模式')
+    toggleMode()
+  }
 }
 
 // 点击外部关闭模型下拉
@@ -231,7 +243,20 @@ watch(hasStats, (v) => { if (v) leftOpen.value = true })
                 <span class="flex-1 truncate">{{ m.name || m.id }}</span>
                 <span v-if="selectedModel === m.id" class="text-primary"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>
               </button>
-              <div v-if="availableModels.length === 0" class="px-3 py-2 text-[10px] text-muted-foreground">暂无模型列表</div>
+              <!-- 加载中 -->
+              <div v-if="modelsLoading" class="px-3 py-3 text-center text-[10px] text-muted-foreground">
+                <span class="animate-pulse">加载模型列表…</span>
+              </div>
+              <!-- 未配置 API Key -->
+              <div v-else-if="!apiConfigured && availableModels.length === 0" class="px-3 py-3 text-center space-y-1.5">
+                <div class="text-[10px] text-muted-foreground">请先配置 API Key</div>
+                <button @click="showModelDropdown = false; showApiKeyDialog = true" class="text-[10px] text-primary hover:underline">去配置 →</button>
+              </div>
+              <!-- 加载完成但列表为空 -->
+              <div v-else-if="!modelsLoading && availableModels.length === 0" class="px-3 py-3 text-center">
+                <div class="text-[10px] text-muted-foreground">暂无模型列表</div>
+                <button @click="fetchModelList()" class="mt-1 text-[10px] text-primary hover:underline">重试</button>
+              </div>
             </div>
           </Transition>
         </div>
