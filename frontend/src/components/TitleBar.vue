@@ -6,16 +6,15 @@ import { useTheme } from '@/stores/theme'
 
 const { isDark, toggle } = useTheme()
 const isMaximized = ref(false)
+const version = ref('')
 
-/** 最小化窗口（Electron 环境） */
 const min = () => window.electronAPI?.minimizeWindow()
-/** 最大化/还原窗口（Electron 环境） */
 const max = () => window.electronAPI?.maximizeWindow()
-/** 关闭窗口（Electron 环境） */
 const close = () => window.electronAPI?.closeWindow()
 
-onMounted(() => {
+onMounted(async () => {
   window.electronAPI?.onWindowStateChanged((max) => { isMaximized.value = max })
+  version.value = await window.electronAPI?.getVersion() || ''
 })
 </script>
 
@@ -32,6 +31,7 @@ onMounted(() => {
 
     <!-- 右侧 -->
     <div class="flex items-center" style="-webkit-app-region: no-drag;">
+      <span v-if="version" class="text-[10px] text-muted-foreground/60 mr-1 font-mono">v{{ version }}</span>
       <!-- 深色模式切换 -->
       <button
         data-tour="theme-btn"

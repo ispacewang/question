@@ -5,6 +5,7 @@ const path = require('path');
 const createServer = require('./backend/app.js');
 
 const PORT = 13002;
+let serverInstance = null;
 
 /**
  * 创建主窗口：frameless Mica 窗口，设置 preload、窗口控制 IPC、最大化/还原事件
@@ -16,7 +17,7 @@ function createWindow () {
     minWidth: 800,
     minHeight: 500,
     frame: false,
-    icon: path.join(__dirname, 'frontend/public/favicon1.ico'),
+    icon: path.join(__dirname, 'frontend/dist/favicon1.ico'),
     backgroundMaterial: 'mica',
     backgroundColor: '#00000000',
     webPreferences: {
@@ -44,6 +45,7 @@ function createWindow () {
   });
   ipcMain.on('window-close', () => win.close());
   ipcMain.handle('window-is-maximized', () => win.isMaximized());
+  ipcMain.handle('get-app-version', () => app.getVersion());
 
   win.on('maximize', () => win.webContents.send('window-state-changed', true));
   win.on('unmaximize', () => win.webContents.send('window-state-changed', false));
@@ -52,8 +54,8 @@ function createWindow () {
 }
 
 app.whenReady().then(() => {
-  const expressApp = createServer();
-  expressApp.listen(PORT, () => {
+  const expressApp = createServer(app.getPath('userData'));
+  serverInstance = expressApp.listen(PORT, () => {
     console.log(`✅ Express server running on http://localhost:${PORT}`);
     createWindow();
     app.on('activate', () => {

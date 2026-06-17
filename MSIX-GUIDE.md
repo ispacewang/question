@@ -62,11 +62,11 @@ Import-PfxCertificate -FilePath ".\test-cert.pfx" -CertStoreLocation Cert:\Local
 
 ```bash
 # 生成 .msix 文件（输出到 release/）
-yarn build:msix
-
-# 或
+# 会自动运行 generate_tiles.py → electron-builder → patch_appx_manifest.py
 npm run build:msix
 ```
+
+> ⚠️ `build:msix` 现在会自动执行三步：1) 前端构建 2) APPX 打包 3) 清单补丁（添加 Square71x71Logo / Square310x310Logo）
 
 输出文件：`release/答题小助手_2.5.2_x64.appx`（或 .msix）
 
@@ -98,19 +98,122 @@ Add-AppxPackage -Path ".\release\答题小助手_2.5.2_x64.appx"
 
 将 appx 配置中的开发占位符替换为 Partner Center 信息：
 ```json
-"appx": {
-  "applicationId": "answer-helper",
-  "displayName": "答题小助手",
-  "publisherDisplayName": "<Partner Center 中的发布者显示名称>",
-  "publisher": "CN=<Partner Center 中的 Publisher ID>",
-  "identityName": "<Partner Center 中的 Package Identity Name>",
-  "backgroundColor": "#1c1c1e",
-  "showNameOnTiles": true,
-  "setBuildNumber": false
+"build": {
+  "appId": "com.ispace.quesora",
+  "icon": "frontend/public/icon-512x512.png",
+  ...
+  "appx": {
+    "applicationId": "Quesora",
+    "displayName": "Quesora",
+    "publisherDisplayName": "<Partner Center 中的发布者显示名称>",
+    "publisher": "CN=<Partner Center 中的 Publisher ID>",
+    "identityName": "<Partner Center 中的 Package Identity Name>",
+    "backgroundColor": "#1c1c1e",
+    "showNameOnTiles": true,
+    "setBuildNumber": false
+  }
 }
 ```
 
 **不需要** certificateFile — 微软商店会自动签名。
+
+> ⚠️ 注意：`build.icon` 必须放在根级别（不是 `win.icon`、也不是 `appx.icon`），electron-builder 24.x 的 appx 目标不认 `appx.icon` 属性。
+
+### 第 3.5 步：准备 Tile 图标（关键！）
+
+**这是最常见的审核拒绝原因**——用了默认 Electron 图标。微软商店要求 tile 图标必须**唯一代表你的产品**，不能使用任何默认/通用图标。
+
+electron-builder 的 appx 目标**不会自动从根级 `icon` 生成 tile 图片**。必须手动放置到 `build/appx/` 目录。
+
+#### 3.5.1 基础图标（最少 6 个）
+
+```
+E:\question\build\appx\
+├── StoreLogo.png           (50×50)     ← 商店/Settings 图标
+├── Square44x44Logo.png     (44×44)     ← 任务栏/应用列表图标
+├── Square150x150Logo.png   (150×150)   ← 开始菜单中号磁贴
+├── Wide310x150Logo.png     (310×150)   ← 开始菜单宽磁贴
+├── Square71x71Logo.png     (71×71)     ← 开始菜单小号磁贴
+└── Square310x310Logo.png   (310×310)   ← 开始菜单大号磁贴
+```
+
+仅这 6 个图标**可能不够**。Windows 在特定上下文（任务栏分组、Alt+Tab、搜索）需要 **unplated** 变体和 HiDPI 缩放变体，缺少会导致回退到默认图标。
+
+#### 3.5.2 完整图标集（48 个，推荐）
+
+用以下 Python 脚本一次性生成所有需要的图标（基础 + 缩放 + unplated）：
+
+```bash
+cd E:\question
+python generate_tiles.py
+```
+
+`generate_tiles.py`（放在项目根目录）：
+
+```python
+from PIL import Image
+import os
+
+src = Image.open('frontend/public/icon-512x512.png').convert('RGBA')
+os.makedirs('build/appx', exist_ok=True)
+
+# 基础 + 所有尺寸
+for name, size in [
+    ('StoreLogo.png', (50, 50)),
+    ('Square44x44Logo.png', (44, 44)),
+    ('Square71x71Logo.png', (71, 71)),
+    ('Square89x89Logo.png', (89, 89)),
+    ('Square107x107Logo.png', (107, 107)),
+    ('Square142x142Logo.png', (142, 142)),
+    ('Square150x150Logo.png', (150, 150)),
+    ('Square284x284Logo.png', (284, 284)),
+    ('Square310x310Logo.png', (310, 310)),
+    ('Wide310x150Logo.png', (310, 150)),
+]:
+    src.resize(size, Image.LANCZOS).save(f'build/appx/{name}')
+
+# HiDPI 缩放变体
+scales = [100, 125, 150, 200, 400]
+for base, (w, h) in [
+    ('StoreLogo', (50, 50)),
+    ('Square44x44Logo', (44, 44)),
+    ('Square71x71Logo', (71, 71)),
+    ('Square150x150Logo', (150, 150)),
+    ('Square310x310Logo', (310, 310)),
+    ('Wide310x150Logo', (310, 150)),
+]:
+    for s in scales:
+        sw, sh = int(w * s / 100), int(h * s / 100)
+        src.resize((sw, sh), Image.LANCZOS).save(f'build/appx/{base}.scale-{s}.png')
+
+# Unplated 变体（任务栏/Search/Alt+Tab 等无背景色上下文）
+for name, size in [
+    ('Square44x44Logo.targetsize-16_altform-unplated.png', (16, 16)),
+    ('Square44x44Logo.targetsize-24_altform-unplated.png', (24, 24)),
+    ('Square44x44Logo.targetsize-32_altform-unplated.png', (32, 32)),
+    ('Square44x44Logo.targetsize-48_altform-unplated.png', (48, 48)),
+    ('Square44x44Logo.targetsize-256_altform-unplated.png', (256, 256)),
+    ('Square150x150Logo.targetsize-150_altform-unplated.png', (150, 150)),
+    ('Wide310x150Logo.targetsize-310x150_altform-unplated.png', (310, 150)),
+    ('Square310x310Logo.targetsize-310_altform-unplated.png', (310, 310)),
+]:
+    src.resize(size, Image.LANCZOS).save(f'build/appx/{name}')
+
+print(f'✅ 生成了 {len(os.listdir("build/appx"))} 个图标文件')
+```
+
+> ⚠️ `build/appx/` 与前端代码无关，建议加入 `.gitignore`。**每次修改源图标后必须重新运行此脚本。**
+
+#### 3.5.3 如果审核仍然被拒
+
+如果重建后仍然收到 10.1.1.11 拒绝，请检查 Partner Center **Store listings（商店一览）**：
+
+1. Partner Center → 你的应用 → **Store listings**
+2. 检查 **Store logo（商店徽标）** 部分，确保上传了自定义图标：
+   - **1:1 Box art**（300×300 推荐）— 用于商店搜索结果
+   - 使用 `frontend/public/icon-300x300.png`
+3. 确保**至少上传 1 张截图**（不能用占位图）
+4. 如果之前留空，微软会自动填充默认占位图 → 必须替换为自定义图片
 
 ### 第 4 步：打包并提交
 ```bash
@@ -128,3 +231,4 @@ yarn build:msix
 - ⚠️ 测试证书只能用于本地测试。发布到商店时删除 `certificateFile` 配置
 - ⚠️ `driver.js` 在根 package.json dependencies 中，打包 NSIS 时需要；MSIX 也兼容
 - ⚠️ `backgroundMaterial: 'mica'` 是 Windows 11 特性，在 Windows 10 上自动降级
+- ⚠️ **Tile 图标**必须手动放 `build/appx/`，否则 electron-builder 回退到默认 Electron 图标 → 商店审核拒绝（见第 3.5 步）

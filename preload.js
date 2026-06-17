@@ -12,4 +12,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onWindowStateChanged: (callback) => {
     ipcRenderer.on('window-state-changed', (_event, isMaximized) => callback(isMaximized));
   },
+  getVersion: () => ipcRenderer.invoke('get-app-version'),
 });

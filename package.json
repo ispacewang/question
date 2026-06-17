@@ -1,6 +1,6 @@
 {
   "name": "quesora",
-  "version": "2.5.3",
+  "version": "2.5.5",
   "description": "答题，刷题，考试，AI生题，AI判题",
   "main": "main.js",
   "productName": "Quesora",
@@ -14,6 +14,7 @@
   },
   "build": {
     "appId": "com.ispace.quesora",
+    "icon": "frontend/public/icon-512x512.png",
     "publish": {
       "provider": "github",
       "releaseType": "release"
@@ -25,18 +26,35 @@
       "**/*",
       "!frontend/",
       "frontend/dist/**/*",
+      "!frontend/dist/quesora-banner*.png",
+      "!frontend/dist/quesora banner.png",
+      "!frontend/dist/icon.jpg",
+      "!frontend/dist/icon.png",
+      "!frontend/dist/vite.svg",
+      "!frontend/dist/question.webp",
       "!node.exe",
       "!models/",
-      "!scripts/installer.nsh"
+      "!scripts/installer.nsh",
+      "!backend/uploads/*",
+      "!backend/quiz.db",
+      "!backend/database/*.db",
+      "!backend/node_modules/",
+      "!generate_tiles.py",
+      "!patch_appx_manifest.py",
+      "!test-cert.pfx",
+      "!MSIX-GUIDE.md",
+      "!CHANGELOG.md"
     ],
     "win": {
-      "target": "nsis",
+      "target":  ["nsis", "appx"],
       "icon": "frontend/public/icon-512x512.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
       "artifactName": "Quesora-Setup-${version}.${ext}",
       "shortcutName": "Quesora"
     },

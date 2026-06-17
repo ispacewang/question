@@ -15,6 +15,7 @@
       <span class="text-[10px] font-bold px-1.5 leading-4 min-w-4 text-center rounded-none"
         :class="selectedBank === mistakeBank.id ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300' : 'bg-amber-400/10 text-amber-600 dark:text-amber-400'"
       >{{ mistakeBank.count }}</span>
+      <span class="inline-flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-destructive text-sm leading-none ml-0.5" @click.stop="clearMistakeBank">×</span>
     </button>
 
     <!-- 题库 -->
@@ -167,7 +168,7 @@ import DialogDescription from './ui/DialogDescription.vue'
 import DialogFooter from './ui/DialogFooter.vue'
 import Button from './ui/Button.vue'
 import { getBanks, uploadFile, deleteBank } from '../api'
-import { getMistakeBook, MISTAKE_BOOK_ID } from '../utils/mistakeBook'
+import { getMistakeBook, clearMistakeBook, MISTAKE_BOOK_ID } from '../utils/mistakeBook'
 import { useAiMode } from '../composables/useAiMode'
 
 const { isAiMode, selectedModel, availableModels } = useAiMode()
@@ -341,6 +342,18 @@ const doUpload = async (file) => {
 const onDeleteBank = async (name) => {
   try { await deleteBank(name); toast.success('已删除'); fetchAll(); if (selectedBank.value === name) { selectedBank.value = ''; emit('bank-change', '') } }
   catch { toast.error('删除失败') }
+}
+
+/** 清空错题库：清除 localStorage + 重置状态 + 若已选中则取消 */
+const clearMistakeBank = () => {
+  clearMistakeBook()
+  mistakeBank.count = 0
+  mistakeBank.hasMistakes = false
+  if (selectedBank.value === MISTAKE_BOOK_ID) {
+    selectedBank.value = ''
+    emit('bank-change', '')
+  }
+  toast.success('错题库已清空')
 }
 
 onMounted(fetchAll)

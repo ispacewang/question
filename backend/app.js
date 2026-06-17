@@ -6,6 +6,7 @@ const xlsx = require("xlsx");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const db = require("./db");
 
 /**
@@ -83,9 +84,12 @@ function parseQuestions(filePath) {
  * 创建并配置 Express 应用：上传路由、题库列表、组卷、答题、删除题库、AI路由、静态资源
  * @returns {express.Application} Express 应用实例
  */
-function createServer() {
+function createServer(userDataPath) {
   const app = express();
-  const upload = multer({ dest: "uploads/" });
+  const uploadDir = userDataPath ? path.join(userDataPath, 'uploads') : os.tmpdir();
+  // 确保上传目录存在（EXE/APPX 都需要）
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  const upload = multer({ dest: uploadDir });
   app.use(cors());
   app.use(express.json());
 
@@ -240,7 +244,8 @@ function createServer() {
   };
   // ─── 答题模式：顺序/随机获取单题 ───
   app.get("/question", (req, res) => {
-    const { bankName, order = true, types } = req.query;
+    const { bankName, types } = req.query;
+    const order = req.query.order !== 'false'; // query 参数是字符串，需显式转换
 
     if (!bankName) return res.status(400).json({ error: "缺少题库名" });
 

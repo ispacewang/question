@@ -42,3 +42,10 @@ export function removeQuestionFromMistakeBook(questionId) {
   const book = getMistakeBook().filter(item => item.questionId !== questionId);
   saveMistakeBook(book);
 }
+
+/**
+ * 清空错题库（清除 localStorage 中的所有错题）
+ */
+export function clearMistakeBook() {
+  localStorage.removeItem(MISTAKE_BOOK_ID);
+}

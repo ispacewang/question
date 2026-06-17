@@ -62,7 +62,10 @@ import { computed } from 'vue'
 import { Check, X } from 'lucide-vue-next'
 import { Radar } from 'vue-chartjs'
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip } from 'chart.js'
+import { useTheme } from '@/stores/theme'
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip)
+
+const { isDark } = useTheme()
 
 const props = defineProps({
   stats: { type: Object, required: true, default: () => ({ correct: 0, incorrect: 0, byType: {} }) }
@@ -101,8 +104,8 @@ const radarData = computed(() => ({
   }],
 }))
 
-/** 雷达图配置：极坐标范围 0-100，隐藏刻度，自定义 tooltip */
-const radarOptions = {
+/** 雷达图配置：根据深色/浅色模式自适应 grid/angleLines 颜色 */
+const radarOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   scales: {
@@ -111,20 +114,22 @@ const radarOptions = {
       max: 100,
       min: 0,
       ticks: { display: false, stepSize: 25 },
-      pointLabels: { font: { size: 9 }, color: '#8e8e93' },
-      grid: { color: 'rgba(0,0,0,0.06)' },
-      angleLines: { color: 'rgba(0,0,0,0.06)' },
+      pointLabels: { font: { size: 9 }, color: isDark.value ? '#8e8e93' : '#6e6e73' },
+      grid: { color: isDark.value ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+      angleLines: { color: isDark.value ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
     },
   },
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: 'rgba(29,29,31,0.9)',
+      backgroundColor: isDark.value ? 'rgba(44,44,46,0.95)' : 'rgba(29,29,31,0.9)',
+      titleColor: isDark.value ? '#f5f5f7' : '#fff',
+      bodyColor: isDark.value ? '#f5f5f7' : '#fff',
       padding: 8,
       bodyFont: { size: 11 },
       cornerRadius: 0,
       callbacks: { label: (ctx) => ` 正确率: ${ctx.raw}%` },
     },
   },
-}
+}))
 </script>
