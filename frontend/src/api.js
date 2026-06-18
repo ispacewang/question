@@ -33,8 +33,8 @@ export function getBanks() {
  * @param {string[]} [types] - 筛选题型数组
  * @returns {Promise} axios GET 响应
  */
-export function getQuestion(bankName, order, types) {
-  return axios.get('/question', { params: { bankName, order, types: types ? types.join(',') : undefined } });
+export function getQuestion(bankName, order, types, baoMing) {
+  return axios.get('/question', { params: { bankName, order, types: types ? types.join(',') : undefined, baoMing } });
 }
 
 /**

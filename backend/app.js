@@ -63,6 +63,10 @@ function parseQuestions(filePath) {
         试题编号: row["试题编号"] || "",
         备注: row["备注"] || "",
       };
+      // 备注中含「保命题」则标记
+      if (meta["备注"] && meta["备注"].includes("保命题")) {
+        meta.isBaoMing = true;
+      }
 
       return {
         question: row["题干"] || "",
@@ -246,6 +250,7 @@ function createServer(userDataPath) {
   app.get("/question", (req, res) => {
     const { bankName, types } = req.query;
     const order = req.query.order !== 'false'; // query 参数是字符串，需显式转换
+    const baoMingOnly = req.query.baoMing === 'true';
 
     if (!bankName) return res.status(400).json({ error: "缺少题库名" });
 
@@ -270,7 +275,14 @@ function createServer(userDataPath) {
         const allQuestions = db
           .prepare(`SELECT * FROM questions WHERE bank_id = ? AND ${typeFilter} ORDER BY id ASC`)
           .all(bankId);
-        if (!allQuestions || allQuestions.length === 0) {
+        let candidates = allQuestions;
+        if (baoMingOnly) {
+          candidates = allQuestions.filter(q => {
+            try { const m = JSON.parse(q.meta || '{}'); return m.isBaoMing; }
+            catch { return false; }
+          });
+        }
+        if (!candidates || candidates.length === 0) {
           return res.status(404).json({ error: "该题库没有符合条件的题目" });
         }
         const lastIndex = currentProgress.lastIndex;
@@ -278,22 +290,29 @@ function createServer(userDataPath) {
         let nextIndex =
           lastIndex === null || lastIndex === undefined ? 0 : lastIndex + 1;
 
-        if (nextIndex >= allQuestions.length) {
+        if (nextIndex >= candidates.length) {
           nextIndex = 0;
         }
 
-        q = allQuestions[nextIndex];
+        q = candidates[nextIndex];
 
         currentProgress.lastIndex = nextIndex;
       } else {
         const questions = db
           .prepare(`SELECT * FROM questions WHERE bank_id=? AND ${typeFilter}`)
           .all(bankId);
-        if (!questions || questions.length === 0) {
+        let candidates = questions;
+        if (baoMingOnly) {
+          candidates = questions.filter(q => {
+            try { const m = JSON.parse(q.meta || '{}'); return m.isBaoMing; }
+            catch { return false; }
+          });
+        }
+        if (!candidates || candidates.length === 0) {
           return res.status(400).json({ error: "题库为空" });
         }
-        const idx = Math.floor(Math.random() * questions.length);
-        q = questions[idx];
+        const idx = Math.floor(Math.random() * candidates.length);
+        q = candidates[idx];
       }
 
       if (!q) {

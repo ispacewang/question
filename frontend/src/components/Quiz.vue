@@ -20,11 +20,14 @@
     </div>
 
     <div v-else-if="question" class="flex-1 flex flex-col">
-      <div class="px-4 py-5 max-w-[800px] mx-auto w-full">
+      <!-- 保命题跑马灯边框 -->
+      <div class="flex-1 flex flex-col mx-4 my-4 relative" :class="{ 'bao-ming-card': isBaoMing }">
+      <div class="px-4 py-5 max-w-[800px] mx-auto w-full flex-1">
         <!-- 工具栏 -->
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-border/40">
           <div class="flex items-center gap-1.5 flex-wrap">
             <Badge variant="default">{{ question.type }}</Badge>
+            <Badge v-if="isBaoMing" variant="destructive">保命题</Badge>
             <Badge v-if="question.meta?.['题目分类']" variant="secondary">{{ question.meta['题目分类'] }}</Badge>
           </div>
           <div class="flex items-center gap-2" data-tour="modes">
@@ -39,6 +42,13 @@
                   ? 'border-primary/40 bg-primary/10 text-primary font-medium'
                   : 'border-transparent text-muted-foreground hover:text-foreground'"
               >{{ t.label }}</button>
+              <button
+                @click="toggleTypeFilter('baoMing')"
+                class="text-[10px] px-1.5 py-0.5 border transition-colors"
+                :class="baoMingOnly
+                  ? 'border-destructive/60 bg-destructive/10 text-destructive font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-destructive/70'"
+              >保命</button>
             </div>
             <!-- 顺序/随机 -->
             <Button size="xs" :variant="!orderMode ? 'default' : 'outline'" @click="toggleOrderMode">
@@ -132,6 +142,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -177,10 +188,15 @@ const typeFilters = computed(() => {
   return base
 })
 const typeFilter = ref(['all'])
+const baoMingOnly = ref(false)
 
 function toggleTypeFilter(key) {
   if (key === 'all') {
     typeFilter.value = ['all']
+    baoMingOnly.value = false
+  } else if (key === 'baoMing') {
+    baoMingOnly.value = !baoMingOnly.value
+    // 保命题是独立筛选，不参与题型互斥
   } else {
     const cur = [...typeFilter.value]
     const allIdx = cur.indexOf('all')
@@ -201,6 +217,7 @@ const isShortAnswer = computed(() => question.value?.type === '简答题')   // 
 const isFillBlank = computed(() => question.value?.type === '填空题')      // 填空题需文本框输入
 const isMultiChoice = computed(() => question.value?.type === '多选题')    // 多选题支持多选字母
 const isMistakeBook = computed(() => currentBank.value === MISTAKE_BOOK_ID)
+const isBaoMing = computed(() => question.value?.meta?.isBaoMing === true)
 
 const stripOpt = (s) => (s || '').replace(/^(?:[A-Za-z]\s*[.、)）：:．]\s*)+/, '')
 const emptyDescription = computed(() => {
@@ -263,6 +280,9 @@ const loadQuestion = async () => {
       if (!typeFilter.value.includes('all')) {
         filtered = book.filter(q => typeFilter.value.includes(q.type || '单选题'))
       }
+      if (baoMingOnly.value) {
+        filtered = filtered.filter(q => q.meta?.isBaoMing === true)
+      }
       if (filtered.length === 0) { question.value = null; loading.value = false; return }
       let q
       if (orderMode.value) {
@@ -273,7 +293,7 @@ const loadQuestion = async () => {
       }
       question.value = { ...q, id: q.questionId }
     } else {
-      const res = await api.getQuestion(currentBank.value, orderMode.value, typeFilter.value.includes('all') ? null : [...typeFilter.value])
+      const res = await api.getQuestion(currentBank.value, orderMode.value, typeFilter.value.includes('all') ? null : [...typeFilter.value], baoMingOnly.value)
       question.value = res.data
     }
     userAnswer.value = ''; showResult.value = false; lastResult.value = null
@@ -386,3 +406,22 @@ const aiJudgeQuestion = async () => {
 
 defineExpose({ refreshBanks: () => bankSelectorRef.value?.refreshBanks() })
 </script>
+
+<style>
+/* 保命题跑马灯边框 */
+.bao-ming-card {
+  border: 2px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(var(--color-background, #fff), var(--color-background, #fff)),
+    linear-gradient(90deg, #c2655a, #b8954a, #5d9b6a, #4a7dbf, #c2655a);
+  background-size: 100% 100%, 300% 100%;
+  background-position: 0 0, 0 0;
+  animation: bao-ming-marquee 4s linear infinite;
+}
+@keyframes bao-ming-marquee {
+  0%   { background-position: 0 0, 0% 0; }
+  100% { background-position: 0 0, 300% 0; }
+}
+</style>

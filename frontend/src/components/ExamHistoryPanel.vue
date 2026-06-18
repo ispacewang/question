@@ -68,6 +68,13 @@
                 class="flex-shrink-0 text-muted-foreground transition-transform duration-200"
                 :class="{ 'rotate-90': viewingExam?.id === r.id }"
               ><path d="m9 18 6-6-6-6"/></svg>
+              <button
+                @click.stop="removeRecord(r.id)"
+                class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-muted-foreground/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                title="删除"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
             </div>
 
             <!-- 展开：错题详情 -->
