@@ -1,20 +1,24 @@
 <script setup>
 /** @file TitleBar.vue — 自定义标题栏，Mica磨玻璃效果，深色模式切换+窗口控制 */
 import { ref, onMounted } from 'vue'
-import { Minus, Square, X, Moon, Sun } from 'lucide-vue-next'
+import { Minus, Square, X, Moon, Sun, RotateCcw, Download } from 'lucide-vue-next'
 import { useTheme } from '@/stores/theme'
 
 const { isDark, toggle } = useTheme()
 const isMaximized = ref(false)
 const version = ref('')
+const updateState = ref({ status: 'idle' })
 
 const min = () => window.electronAPI?.minimizeWindow()
 const max = () => window.electronAPI?.maximizeWindow()
 const close = () => window.electronAPI?.closeWindow()
+const restartUpdate = () => window.electronAPI?.restartAndInstallUpdate()
 
 onMounted(async () => {
   window.electronAPI?.onWindowStateChanged((max) => { isMaximized.value = max })
+  window.electronAPI?.onUpdateStateChanged((state) => { updateState.value = state || { status: 'idle' } })
   version.value = await window.electronAPI?.getVersion() || ''
+  updateState.value = await window.electronAPI?.getUpdateState?.() || { status: 'idle' }
 })
 </script>
 
@@ -31,6 +35,23 @@ onMounted(async () => {
 
     <!-- 右侧 -->
     <div class="flex items-center" style="-webkit-app-region: no-drag;">
+      <button
+        v-if="updateState.status === 'downloaded'"
+        class="h-[24px] inline-flex items-center gap-1 px-2 mr-1 text-[10px] font-medium text-primary border border-primary/30 bg-primary/10 hover:bg-primary/15 transition-colors"
+        @click="restartUpdate"
+        title="重启并安装更新"
+      >
+        <RotateCcw class="w-3 h-3" />
+        重启更新
+      </button>
+      <span
+        v-else-if="updateState.status === 'checking' || updateState.status === 'downloading' || updateState.status === 'installing'"
+        class="h-[24px] inline-flex items-center gap-1 px-2 mr-1 text-[10px] text-muted-foreground/70"
+        :title="updateState.status === 'downloading' ? `正在下载更新 ${updateState.progress || 0}%` : updateState.status === 'installing' ? '正在重启并安装更新' : '正在检查更新'"
+      >
+        <Download class="w-3 h-3 animate-pulse" />
+        {{ updateState.status === 'downloading' ? `${updateState.progress || 0}%` : updateState.status === 'installing' ? '正在重启' : '检查更新' }}
+      </span>
       <span v-if="version" class="text-[10px] text-muted-foreground/60 mr-1 font-mono">v{{ version }}</span>
       <!-- 深色模式切换 -->
       <button

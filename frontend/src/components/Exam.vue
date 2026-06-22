@@ -280,13 +280,17 @@
 
           <!-- 等级评语 -->
           <div class="flex items-center justify-center gap-2 text-lg font-semibold mb-1">
-            <Trophy v-if="score === questions.length" class="size-5 text-amber-500" />
+            <X v-if="hasFailedBaoMing" class="size-5 text-destructive" />
+            <Trophy v-else-if="score === questions.length" class="size-5 text-amber-500" />
             <ThumbsUp v-else-if="score / questions.length >= 0.6" class="size-5 text-primary" />
             <TrendingUp v-else class="size-5 text-muted-foreground" />
             <span>{{ gradeText }}</span>
           </div>
           <p class="text-sm text-muted-foreground">
-            正确率 {{ Math.round(score / questions.length * 100) }}% · 答对 {{ score }} 题 · 答错 {{ wrongSet.size }} 题
+            正确率 {{ Math.round(score / questions.length * 100) }}% · 答对 {{ correctSet.size }} 题 · 答错 {{ wrongSet.size }} 题
+          </p>
+          <p v-if="hasFailedBaoMing" class="mt-2 text-xs font-medium text-destructive">
+            保命题答错，综合成绩按 0 分计
           </p>
         </div>
 
@@ -313,11 +317,13 @@
               v-for="wi in sortedWrong"
               :key="wi"
               class="border border-border p-5 space-y-3"
+              :class="isBaoMingQuestion(wi) ? 'border-destructive/70 ring-2 ring-destructive/25 bg-destructive/[0.035]' : ''"
             >
             <!-- 题号 + 题型 -->
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-muted-foreground w-6 tabular-nums">{{ wi + 1 }}</span>
               <Badge variant="outline">{{ questions[wi].type }}</Badge>
+              <Badge v-if="isBaoMingQuestion(wi)" variant="destructive">保命题</Badge>
             </div>
 
             <!-- 题干 -->
@@ -448,6 +454,7 @@ const score = ref(0);
 const wrongSet = ref(new Set());
 const correctSet = ref(new Set());
 const wrongDetails = ref({});
+const hasFailedBaoMing = ref(false);
 const showConfetti = ref(false);
 const confettiCanvas = ref(null);
 const saved = ref(false);
@@ -474,9 +481,11 @@ const timeStr = computed(() => {
 
 const examDiagramConfig = computed(() => questions.value[currentIdx.value]?.meta?.diagram || null)
 const examDiagramSvg = computed(() => questions.value[currentIdx.value]?.meta?.diagramSvg || '')
+const isBaoMingQuestion = (index) => questions.value[index]?.meta?.isBaoMing === true
 
 /** 等级评语文本 */
 const gradeText = computed(() => {
+  if (hasFailedBaoMing.value) return '保命题失守，综合成绩归零'
   if (score.value === questions.value.length) return '满分！太厉害了！'
   if (score.value / questions.value.length >= 0.8) return '优秀，继续加油！'
   if (score.value / questions.value.length >= 0.6) return '不错，还有进步空间'
@@ -504,6 +513,7 @@ const genPaper = async () => {
   wrongSet.value = new Set();
   correctSet.value = new Set();
   wrongDetails.value = {};
+  hasFailedBaoMing.value = false;
   if (timer.value) clearInterval(timer.value);
   timer.value = setInterval(() => {
     timeLeft.value--;
@@ -599,6 +609,7 @@ const submitExam = async () => {
   submitted.value = true;
   examStarted.value = false;
   let cc = 0;
+  let failedBaoMing = false;
   const wr = new Set(),
     cr = new Set(),
     wd = {};
@@ -610,6 +621,7 @@ const submitExam = async () => {
       r = await api.submitAnswer(q.id, a, props.examInfo.bank);
     } catch {
       wr.add(i);
+      if (q.meta?.isBaoMing === true) failedBaoMing = true;
       continue;
     }
     if (r.data?.correct) {
@@ -617,16 +629,18 @@ const submitExam = async () => {
       cr.add(i);
     } else {
       wr.add(i);
+      if (q.meta?.isBaoMing === true) failedBaoMing = true;
       if (r.data) wd[i] = { answer: r.data.answer, explanation: r.data.explanation };
     }
   }
-  score.value = cc;
+  score.value = failedBaoMing ? 0 : cc;
   wrongSet.value = wr;
   correctSet.value = cr;
   wrongDetails.value = wd;
+  hasFailedBaoMing.value = failedBaoMing;
 
   // 满分碎屑动画
-  if (cc === questions.value.length) {
+  if (!failedBaoMing && cc === questions.value.length) {
     startConfetti();
   }
 };

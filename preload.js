@@ -13,4 +13,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('window-state-changed', (_event, isMaximized) => callback(isMaximized));
   },
   getVersion: () => ipcRenderer.invoke('get-app-version'),
+  getUpdateState: () => ipcRenderer.invoke('get-update-state'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  restartAndInstallUpdate: () => ipcRenderer.invoke('restart-and-install-update'),
+  onUpdateStateChanged: (callback) => {
+    ipcRenderer.on('update-state-changed', (_event, state) => callback(state));
+  },
 });
