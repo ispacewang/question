@@ -144,6 +144,13 @@
       </div>
       </div>
     </div>
+
+    <div v-else class="flex-1 flex flex-col items-center justify-center py-20 px-5 text-muted-foreground">
+      <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 opacity-40">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </div>
+      <p class="text-sm">{{ emptyDescription }}</p>
+    </div>
   </div>
 </template>
 
@@ -176,6 +183,7 @@ const showResult = ref(false)
 const lastResult = ref(null)
 const lastMistakeIdx = ref(0)
 const aiJudging = ref(false)
+let loadRequestId = 0
 
 // 题型筛选 — "全部" 等同于不过滤
 const ALL_TYPES = ['单选题', '多选题', '判断题']
@@ -190,14 +198,26 @@ const typeFilters = computed(() => {
 const typeFilter = ref(['all'])
 const baoMingOnly = ref(false)
 
+const hasActiveFilters = () => !typeFilter.value.includes('all') || baoMingOnly.value
+const resetFilters = () => {
+  typeFilter.value = ['all']
+  baoMingOnly.value = false
+}
+const resetQuestionState = () => {
+  userAnswer.value = ''
+  showResult.value = false
+  lastResult.value = null
+}
+
 function toggleTypeFilter(key) {
   if (key === 'all') {
     typeFilter.value = ['all']
     baoMingOnly.value = false
   } else if (key === 'baoMing') {
     baoMingOnly.value = !baoMingOnly.value
-    // 保命题是独立筛选，不参与题型互斥
+    typeFilter.value = ['all']
   } else {
+    baoMingOnly.value = false
     const cur = [...typeFilter.value]
     const allIdx = cur.indexOf('all')
     if (allIdx >= 0) cur.splice(allIdx, 1)
@@ -261,7 +281,14 @@ const optionLetterClass = (i) => {
 const onBankChange = async (bankId) => {
   currentBank.value = bankId
   emit('bank-changed')
-  if (!bankId) { question.value = null; return }
+  resetFilters()
+  resetQuestionState()
+  if (!bankId) {
+    loadRequestId++
+    question.value = null
+    loading.value = false
+    return
+  }
   lastMistakeIdx.value = 0
   await loadQuestion()
 }
@@ -272,6 +299,7 @@ const onBankChange = async (bankId) => {
  */
 const loadQuestion = async () => {
   if (!currentBank.value) return
+  const requestId = ++loadRequestId
   loading.value = true
   try {
     if (isMistakeBook.value) {
@@ -283,7 +311,17 @@ const loadQuestion = async () => {
       if (baoMingOnly.value) {
         filtered = filtered.filter(q => q.meta?.isBaoMing === true)
       }
-      if (filtered.length === 0) { question.value = null; loading.value = false; return }
+      if (requestId !== loadRequestId) return
+      if (filtered.length === 0) {
+        if (hasActiveFilters()) {
+          toast.error('当前筛选没有题目，已恢复全部题型')
+          resetFilters()
+          await loadQuestion()
+          return
+        }
+        question.value = null
+        return
+      }
       let q
       if (orderMode.value) {
         if (lastMistakeIdx.value >= filtered.length) lastMistakeIdx.value = 0
@@ -294,13 +332,23 @@ const loadQuestion = async () => {
       question.value = { ...q, id: q.questionId }
     } else {
       const res = await api.getQuestion(currentBank.value, orderMode.value, typeFilter.value.includes('all') ? null : [...typeFilter.value], baoMingOnly.value)
+      if (requestId !== loadRequestId) return
       question.value = res.data
     }
-    userAnswer.value = ''; showResult.value = false; lastResult.value = null
+    resetQuestionState()
   } catch (e) {
+    if (requestId !== loadRequestId) return
+    if (hasActiveFilters() && [400, 404].includes(e.response?.status)) {
+      toast.error('当前筛选没有题目，已恢复全部题型')
+      resetFilters()
+      await loadQuestion()
+      return
+    }
     toast.error(e.response?.data?.error || '加载失败')
     question.value = null
-  } finally { loading.value = false }
+  } finally {
+    if (requestId === loadRequestId) loading.value = false
+  }
 }
 
 const toggleOrderMode = () => { orderMode.value = !orderMode.value; loadQuestion() }
@@ -408,7 +456,6 @@ defineExpose({ refreshBanks: () => bankSelectorRef.value?.refreshBanks() })
 </script>
 
 <style>
-/* 保命题跑马灯边框 */
 .bao-ming-card {
   border: 2px solid transparent;
   background-origin: border-box;

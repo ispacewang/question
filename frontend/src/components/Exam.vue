@@ -49,16 +49,16 @@
       <!-- 三栏布局 -->
       <div
         class="grid"
-        style="grid-template-columns: 180px 1fr 300px; height: calc(100vh - 130px)"
+        style="grid-template-columns: 208px 1fr 300px; height: calc(100vh - 130px)"
       >
         <!-- 左栏：答题卡 -->
-        <div class="p-3.5 overflow-y-auto border-r border-border">
+        <div class="pl-5 pr-4 py-4 overflow-y-auto border-r border-border bg-muted/[0.18]">
           <div
             class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3.5 pb-2.5 border-b border-border"
           >
             答题卡
           </div>
-          <div class="grid grid-cols-4 gap-1">
+          <div class="grid grid-cols-4 gap-1.5">
             <template v-for="(ans, qi) in answers" :key="qi">
               <div
                 v-if="isNewTypeSection(qi)"

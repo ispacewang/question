@@ -241,11 +241,7 @@ function createServer(userDataPath) {
     }
   });
 
-  let currentProgress = {
-    bankName: null,
-    isSequential: null,
-    lastIndex: null,
-  };
+  const currentProgress = new Map();
   // ─── 答题模式：顺序/随机获取单题 ───
   app.get("/question", (req, res) => {
     const { bankName, types } = req.query;
@@ -262,11 +258,19 @@ function createServer(userDataPath) {
       const bankId = bankRow.id;
 
       // 题型过滤
-      let typeFilter = "type != '简答题'";
+      const allowedTypes = new Set(['单选题', '多选题', '判断题', '简答题', '填空题']);
+      let typeFilter = "type != ?";
+      let typeArgs = ['简答题'];
+      let typeKey = 'default';
       if (types) {
-        const typeList = types.split(',').map(t => t.trim()).filter(Boolean);
+        const typeList = types
+          .split(',')
+          .map(t => t.trim())
+          .filter(t => allowedTypes.has(t));
         if (typeList.length > 0) {
-          typeFilter = `type IN (${typeList.map(t => `'${t}'`).join(',')})`;
+          typeKey = typeList.slice().sort().join('|');
+          typeFilter = `type IN (${typeList.map(() => '?').join(',')})`;
+          typeArgs = typeList;
         }
       }
 
@@ -274,7 +278,7 @@ function createServer(userDataPath) {
       if (order) {
         const allQuestions = db
           .prepare(`SELECT * FROM questions WHERE bank_id = ? AND ${typeFilter} ORDER BY id ASC`)
-          .all(bankId);
+          .all(bankId, ...typeArgs);
         let candidates = allQuestions;
         if (baoMingOnly) {
           candidates = allQuestions.filter(q => {
@@ -285,7 +289,8 @@ function createServer(userDataPath) {
         if (!candidates || candidates.length === 0) {
           return res.status(404).json({ error: "该题库没有符合条件的题目" });
         }
-        const lastIndex = currentProgress.lastIndex;
+        const progressKey = `${bankId}:${typeKey}:${baoMingOnly}`;
+        const lastIndex = currentProgress.get(progressKey);
 
         let nextIndex =
           lastIndex === null || lastIndex === undefined ? 0 : lastIndex + 1;
@@ -296,11 +301,11 @@ function createServer(userDataPath) {
 
         q = candidates[nextIndex];
 
-        currentProgress.lastIndex = nextIndex;
+        currentProgress.set(progressKey, nextIndex);
       } else {
         const questions = db
           .prepare(`SELECT * FROM questions WHERE bank_id=? AND ${typeFilter}`)
-          .all(bankId);
+          .all(bankId, ...typeArgs);
         let candidates = questions;
         if (baoMingOnly) {
           candidates = questions.filter(q => {

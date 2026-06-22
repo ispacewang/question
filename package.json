@@ -1,6 +1,6 @@
 {
   "name": "quesora",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "description": "答题，刷题，考试，AI生题，AI判题",
   "main": "main.js",
   "productName": "Quesora",
